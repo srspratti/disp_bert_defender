@@ -351,7 +351,8 @@ def main():
     # Load a trained model and config that you have fine-tuned
     if args.do_eval and (args.local_rank == -1 or torch.distributed.get_rank() == 0):
 
-        eval_examples = processor.get_gnrt_dev_examples(args.data_file)
+        #eval_examples = processor.get_gnrt_dev_examples(args.data_file)
+        eval_examples = processor.get_gnrt_dev_examples(args.data_dir)
         eval_features, w2i, i2w, vocab_size = convert_examples_to_features_gnrt_eval(
             eval_examples, label_list, args.max_seq_length, args.max_ngram_length, tokenizer, w2i, i2w, vocab_size)
 
