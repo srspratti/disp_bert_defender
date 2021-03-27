@@ -216,13 +216,16 @@ def convert_examples_to_features_disc_eval(examples, label_list, max_seq_length,
     for (ex_index, example) in enumerate(examples):
 
         flaw_ids = []
+        print("ex_index; ",ex_index)
         tokens = word_tokenize(example.text_a)
         if len(tokens) > max_seq_length:
             tokens = tokens[:max_seq_length]
         if example.flaw_labels is not None:
+            print("example.flaw_labels is not None: block ")
             if example.flaw_labels == '': flaw_ids = [-1]
             else:
                 #flaw_ids = [int(x) for x in (example.flaw_labels).split(',')]
+                print("flaw_ids strip split block: ")
                 flaw_ids = [int(x) for x in (example.flaw_labels).strip('"').split(',')]
         
         # flaw_ids: the index of flaw words on word-level
@@ -233,7 +236,9 @@ def convert_examples_to_features_disc_eval(examples, label_list, max_seq_length,
         input_pieces, chunks, flaw_labels = [], [], []
         flaw_ids_cut = []
 
-        for i,tok in enumerate(tokens): 
+        for i,tok in enumerate(tokens):
+            
+            print("i in enumerate tokens: ",i)
 
             if tok not in w2i:
                 w2i[tok] = index
@@ -684,10 +689,13 @@ class SST2Processor(DataProcessor):
 
     def get_disc_dev_examples(self, data_dir):
         """See base class."""
+        print("data_dir value : ", data_dir)
         if 'tsv' in data_dir:
+            print("tsv in data_dir")
             return self._create_examples(
                 self._read_tsv(data_dir), "dev")
         else:
+            print("tsv not in data_dir")
             return self._create_examples(
             self._read_tsv(os.path.join(data_dir, "disc_dev.tsv")), "dev")
 

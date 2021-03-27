@@ -353,7 +353,7 @@ def main():
             with open(output_config_file, 'w') as f:
                 f.write(model_to_save.config.to_json_string())
 
-    if args.do_eval and (args.local_rank == -1 or torch.distributed.get_rank() == 0):
+    if args.do_eval and (args.local_rank == -1 or torch.distributed.get_rank() == 0): # for trouble-shooting
 
         eval_examples = processor.get_disc_dev_examples(args.data_file)
         eval_features,w2i,i2w,vocab_size = convert_examples_to_features_disc_eval(
@@ -413,9 +413,23 @@ def main():
                 flaw_ids = flaw_ids.to(device)
 
                 with torch.no_grad():
-                    tmp_eval_loss,_ = model(input_ids, input_mask, flaw_labels)
+                    tmp_eval_loss,s = model(input_ids, input_mask, flaw_labels)
+                    
+                    print("tmp_eval_loss: ",tmp_eval_loss)
+                    print("s: ",s)
+                    
                     logits = model(input_ids, input_mask)
+                    
+                    print("len of logits: ",len(logits))
+                    print("shape of logits: ",logits.size())
+                    print("type of logits: ",type(logits))
+                    
                     flaw_logits = torch.argmax(logits, dim=2)
+                    
+                    print("Type of flaw_logits: ",type(flaw_logits))
+                    print("shape of flaw_logits: ",flaw_logits.size())
+                    print("Length of flaw_logits: ",len(flaw_logits))
+                    print("flaw_logits: ", flaw_logits)
 
                 logits = logits.detach().cpu().numpy()
                 flaw_logits = flaw_logits.detach().cpu().numpy()
@@ -425,9 +439,24 @@ def main():
                 token_ids = token_ids.to('cpu').numpy()
                 
                 flaw_logits = logit_converter(flaw_logits, chunks) # each word only has one '1'
+                
+                print("Type of flaw_logits logit_converter: ",type(flaw_logits))
+                #print("shape of flaw_logits logit_converter : ",flaw_logits.size())
+                print("Length of flaw_logits logit_converter : ",len(flaw_logits))
+                print("flaw_logits logit_converter : ", flaw_logits)
+                
                 true_logits = []
+                
+                print("length of flaw_ids: ",len(flaw_ids))
+                
                 for i in range(len(flaw_ids)):
                     tmp = [0] * len(flaw_logits[i])
+                    
+                    print("tmp: ",tmp)
+                    print("len of tmp: ",len(tmp))
+                    print("length of flaw_ids of i : ",len(flaw_ids[i]))
+                    print("flaw_ids[i]: ",flaw_ids[i])
+                    
                     for j in range(len(flaw_ids[0])):
                         if flaw_ids[i][j] == 0: break
                         if flaw_ids[i][j] >= len(tmp): continue
@@ -438,19 +467,23 @@ def main():
                 tmp_eval_accuracy = accuracy_2d(flaw_logits, true_logits)
                 eval_accuracy += tmp_eval_accuracy 
 
-                predictions += true_logits
-                truths += flaw_logits
+                predictions += true_logits # Original 
+                truths += flaw_logits # Original 
+                #predictions += flaw_logits # for trouble-shooting
+                #truths += true_logits # for trouble-shooting
                 eval_loss += tmp_eval_loss.mean().item()
                 nb_eval_examples += input_ids.size(0)
                 nb_eval_steps += 1
 
                 with open(output_file, "a") as csv_file:
                     for i in range(len(label_id)):
+                        print("i in write output file:",i)
                         token = ' '.join([i2w[x] for x in token_ids[i] if x != 0])
                         flaw_logit = flaw_logits[i]
+                        print("flaw_logit in write output file: ",flaw_logit)
                         label = str(label_id[i])
-                        logit = ','.join([str(i) for i,x in enumerate(flaw_logit) if x == 1]) 
-                        logit = '-1' if logit == '' else logit
+                        logit = ','.join([str(i) for i,x in enumerate(flaw_logit) if x == 1]) # for trouble-shooting
+                        logit = '-1' if logit == '' else logit # for trouble-shooting
                         writer = csv.writer(csv_file, delimiter='\t')
                         writer.writerow([token, label, logit])
 
