@@ -970,10 +970,15 @@ def multiplyList(myList):
 def logit_converter(logits, chunks):
     # logits: (batch, sequence_length); padded
     # flaw_logits: (batch, sequence_length); padded
-
+    print("type chunks: ", type(chunks))
+    print("len of chunks: ", len(chunks))
+    print("type of logits: ", type(logits))
+    print("len of logits : ", len(logits))
     max_seq_length = len(chunks[0])
     max_batch_size = len(chunks)
     flaw_logits = []
+    print("max_seq_length sbplshp :  ", max_seq_length)
+    print("max_batch_size sbplshp : ", max_batch_size)
 
     for i in range(max_batch_size):
         flaw_logit = []

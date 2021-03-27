@@ -423,6 +423,7 @@ def main():
                     print("len of logits: ",len(logits))
                     print("shape of logits: ",logits.size())
                     print("type of logits: ",type(logits))
+                    print("type of logits: ",logits)
                     
                     flaw_logits = torch.argmax(logits, dim=2)
                     
