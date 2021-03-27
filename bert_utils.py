@@ -222,7 +222,8 @@ def convert_examples_to_features_disc_eval(examples, label_list, max_seq_length,
         if example.flaw_labels is not None:
             if example.flaw_labels == '': flaw_ids = [-1]
             else:
-                flaw_ids = [int(x) for x in (example.flaw_labels).split(',')]
+                #flaw_ids = [int(x) for x in (example.flaw_labels).split(',')]
+                flaw_ids = [int(x) for x in (example.flaw_labels).strip('"').split(',')]
         
         # flaw_ids: the index of flaw words on word-level
         # flaw_labels: the index of flaw words on wordpiece-level
@@ -738,7 +739,27 @@ def attack_char(token):
         token = token[:index] + token[index+1:]
     return token
 
+#Project : Added New Method
+def get_pad(batch,num_dim):
+    #batch_flat=[batch_flat for batch_flat in batch]
+    pad=[[0] * (num_dim - len(batch))]
+    #flat_pad = [item_more for sublist in pad for item in sublist for item_more in item]
+    flat_pad = [item for sublist in pad for item in sublist]
+    print("batch in get_pad: ", batch)
+    print("flat_pad in get_pad: ",flat_pad)
+    print("len of batch in get_pad: ", len(batch))
+    print("len of flat_pad in get_pad: ",len(flat_pad))
+    #print("batch and extend flat_pad: ", batch.extend(flat_pad))
+    batch_pad = list(np.append(batch, flat_pad))
+    #return batch_flat.extend(flat_pad)
+    #return batch.extend(flat_pad)
+    print("batch and append flat_pad: ", batch_pad)
+    print("length of batch and append flat_pad: ", len(batch_pad))
+    return batch_pad
+    #return flat_pad
 
+    
+#Project : Modified Method
 def load_embeddings_and_save_index(labels, emb_vec, index_path):
     '''
         labels: size-N numpy array of integer word IDs for embeddings.
@@ -747,18 +768,69 @@ def load_embeddings_and_save_index(labels, emb_vec, index_path):
     '''
     
     labels_ls = list(labels)
-    emb_vec = np.asarray(emb_vec, dtype=object)
+    emb_vec_ar = np.asarray(emb_vec, dtype=object)
     num_words = len(labels)
     num_dim = len(emb_vec[0])
     assert(len(labels) == len(emb_vec))
     p = hnswlib.Index(space='l2', dim=num_dim)
     p.init_index(max_elements=num_words, ef_construction=200, M=100)
     p.set_num_threads(1)
+    #print("emb_vec: ", emb_vec)
+    for idx, it in enumerate(emb_vec):
+        #print("printing it:   ",len(it))
+        if len(it)!=300:
+            print("printing it: ",len(it))
+            print("Index : ",idx)
+    #max_cols = max([len(batch) for batch in emb_vec])
+    max_cols=num_dim
+    print("maximum no. of cols: ", max_cols)
+    #max_rows = max([len(batch) for batch in emb_vec])
+    max_rows=num_words
+    print("maximum no. of rows: ", max_rows)
+    print("emb_vec 0 length: ",len(emb_vec[0]))
+    #emb_vec_padded = [batch + [[0] * (max_cols)] * (max_cols - len(batch)) for batch in emb_vec]
+    #emb_vec_padded = [batch + [[0] * (max_cols - len(batch))] for batch in emb_vec]
+        #ngram_embeddings_padded = torch.tensor([row + [0] * (max_rows - len(row)) for batch in ngram_embeddings_padded for row in batch])
+        #ngram_embeddings_padded = ngram_embeddings_padded.view(-1, max_rows, max_cols)
+    #print("emb_vec_padded 0 : ",len(emb_vec_padded[0]))
+    #pad=[[[0] * (num_dim - len(batch))] for batch in emb_vec if len(batch)!=300]
+    #flat_pad = [item_more for sublist in pad for item in sublist for item_more in item]
+    #print("Printing flat PAD: ",flat_pad)
+    #print("Printing len of flat PAD: ",len(flat_pad))
+    #for batch in emb_vec:
+    #    print("type of batch: ", type(batch))
+    #    print("len of batch: ", len(batch))
+    emb_vec_padded_less_dim_before = [ get_pad(batch,num_dim) if len(batch)!=300 else batch for batch in emb_vec]
+    #emb_vec_padded_less_dim_before = [get(batch_flat,num_dim) for batch in emb_vec if len(batch)!=300 for batch_flat in batch]
+    #print("emb_vec_padded_less_dim_before with batch flat: ",emb_vec_padded_less_dim_before)
+    #print("emb_vec_padded_less_dim_before with batch flat: ",len(emb_vec_padded_less_dim_before))
+    #emb_vec_padded_less_dim_before.extend(flat_pad)
+    #print("emb_vec_padded_less_dim_after PLSHPSB : ", emb_vec_padded_less_dim_before.extend(flat_pad))
+    #print("emb_vec_padded_less_dim LEN : ",len(emb_vec_padded_less_dim))
+    #print("emb_vec_padded_less_dim value: ", emb_vec_padded_less_dim)
+    print("emb_vec_padded_less_dim_before LEN : ",len(emb_vec_padded_less_dim_before))
+    #print("emb_vec_padded_less_dim_before value: ", emb_vec_padded_less_dim_before)
+#     for idx_pad, it_pad in enumerate(emb_vec_padded_less_dim_before):
+#         print("printing it:   ",len(it))
+#         #if len(it_pad)!=300:
+         #   print("printing it_pad: ",len(it_pad))
+          #  print("Index of Pad: ", idx_pad)
+    
+    emb_vec_padded_ar = np.asarray(emb_vec_padded_less_dim_before, dtype=object)
+    #for idx_pad, it_pad in enumerate(emb_vec_padded_ar):
+        #print("printing it:   ",len(it))
+        #if len(it_pad)!=301:
+         #   print("printing it_pad: ",len(it_pad))
+          #  print("Index of Pad: ", idx_pad)
+    print("No. Of Dimensions: ", num_dim)
     print("type of emb_vec : ",type(emb_vec))
     print("type of labels: ",type(labels))
-    print("len of emb_vec : ",len(emb_vec))
-    print("len of labels: ",len(labels))
-    p.add_items(emb_vec, labels)
+    print("len of emb_vec : ",emb_vec_ar.shape)
+    print("emb_vec_padded_ar shape : ",emb_vec_padded_ar.shape)
+    print("len of labels: ",len(labels_ls))
+    #p.add_items(emb_vec, labels_ls)
+    #p.add_items(emb_vec_padded_ar, labels_ls)
+    p.add_items(emb_vec_padded_ar, labels)
     p.save_index(index_path)
     return p
 

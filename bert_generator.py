@@ -45,7 +45,7 @@ def main():
                         required=True,
                         help="The output directory where the model predictions and checkpoints will be written.")
     parser.add_argument("--word_embedding_file",
-                        default='emb/crawl-300d-2M.vec',
+                        default='emb/wiki-news-300d-1M.vec',
                         type=str,
                         help="The input directory of word embeddings.")
     parser.add_argument("--index_path",
