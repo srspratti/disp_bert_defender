@@ -7,6 +7,6 @@
 *.DS_Store
 *.swp
 *.out
-./models/
+#./models/
 ./data/
-./emb/
+#./emb/
