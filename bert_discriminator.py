@@ -152,17 +152,17 @@ def main():
         ptvsd.enable_attach(address=(args.server_ip, args.server_port), redirect_output=True)
         ptvsd.wait_for_attach()
     # Comment the if else block for no CUDA
-    if args.local_rank == -1 or args.no_cuda:
-        device = torch.device("cuda" if torch.cuda.is_available() and not args.no_cuda else "cpu")
-        n_gpu = torch.cuda.device_count()
-    else:
-        torch.cuda.set_device(args.local_rank)
-        device = torch.device("cuda", args.local_rank)
-        n_gpu = 1
-        # Initializes the distributed backend which will take care of sychronizing nodes/GPUs
-        torch.distributed.init_process_group(backend='nccl')    
+#     if args.local_rank == -1 or args.no_cuda:
+#         device = torch.device("cuda" if torch.cuda.is_available() and not args.no_cuda else "cpu")
+#         n_gpu = torch.cuda.device_count()
+#     else:
+#         torch.cuda.set_device(args.local_rank)
+#         device = torch.device("cuda", args.local_rank)
+#         n_gpu = 1
+#         # Initializes the distributed backend which will take care of sychronizing nodes/GPUs
+#         torch.distributed.init_process_group(backend='nccl')    
     #device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    #device = torch.device("cpu") # uncomment this for no cpu 
+    device = torch.device("cpu") # uncomment this for no GPU 
     logger.info("device: {} , distributed training: {}, 16-bits training: {}".format(
         device, bool(args.local_rank != -1), args.fp16))
 
@@ -175,8 +175,8 @@ def main():
     random.seed(args.seed)
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
-    if n_gpu > 0: # Comment this to No GPU
-        torch.cuda.manual_seed_all(args.seed) # Comment this for No GPU
+    #if n_gpu > 0: # Comment this to No GPU
+     #   torch.cuda.manual_seed_all(args.seed) # Comment this for No GPU
 
     if not args.do_train and not args.do_eval:
         raise ValueError("At least one of `do_train` or `do_eval` must be True.")
@@ -248,8 +248,8 @@ def main():
             raise ImportError("Please install apex from https://www.github.com/nvidia/apex to use distributed and fp16 training.")
 
         model = DDP(model)
-    elif n_gpu > 1: # Comment this for NO GPU
-        model = torch.nn.DataParallel(model) # Comment this for NO GPU
+    #elif n_gpu > 1: # Comment this for NO GPU
+     #   model = torch.nn.DataParallel(model) # Comment this for NO GPU
 
     # Prepare optimizer
     param_optimizer = list(model.named_parameters())
@@ -307,8 +307,8 @@ def main():
                 loss, logits = model(flaw_ids, flaw_mask, flaw_labels)
                 logits = logits.detach().cpu().numpy()
 
-                if n_gpu > 1: # Comment this for NO GPU
-                    loss = loss.mean() # Comment this for NO GPU
+                #if n_gpu > 1: # Comment this for NO GPU
+                #    loss = loss.mean() # Comment this for NO GPU
 
                 if args.gradient_accumulation_steps > 1:
                     loss = loss / args.gradient_accumulation_steps

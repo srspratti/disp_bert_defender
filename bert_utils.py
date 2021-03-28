@@ -516,6 +516,8 @@ def convert_examples_to_features_flaw(examples, max_seq_length, max_ngram_length
         flaw_tokens, flaw_pieces = [], []
 
         for tok_id in tokens:  
+            
+            print("tok_id : ",tok_id)
 
             if tok_id == 0: break
 
@@ -563,6 +565,62 @@ def convert_examples_to_features_flaw(examples, max_seq_length, max_ngram_length
                                    flaw_labels=flaw_labels))
 
     return features
+
+def convert_examples_to_features_flaw_attacks(examples, max_seq_length, max_ngram_length, tokenizer, i2w, embeddings=None,
+                                      emb_index=None, words=None):
+    """Loads a data file into a list of `InputBatch`s."""
+
+    features = []
+    print("examples: ", examples)
+
+    for (ex_index, example) in enumerate(examples):
+
+        tokens = example
+        print("example: ", example[0])
+        flaw_labels = []
+        flaw_tokens, flaw_pieces = [], []
+
+        for tok_id in tokens:
+            
+            print("tok_id : ",tok_id)
+
+            if tok_id == 0: break
+
+            tok = i2w[tok_id]
+
+            label, tok_flaw = random_attack(tok, embeddings, emb_index, words)  # embeddings
+            word_pieces = tokenizer.tokenize(tok_flaw)
+
+            flaw_labels += [label] * len(word_pieces)
+            flaw_pieces += word_pieces
+
+            flaw_tokens.append(tok_flaw)
+
+            if len(flaw_pieces) > max_seq_length - 2:
+                flaw_pieces = flaw_pieces[:(max_seq_length - 2)]
+                flaw_labels = flaw_labels[:(max_seq_length - 2)]
+                break
+
+        flaw_pieces = ["[CLS]"] + flaw_pieces + ["[SEP]"]
+        flaw_labels = [0] + flaw_labels + [0]
+
+        flaw_ids = tokenizer.convert_tokens_to_ids(flaw_pieces)
+        flaw_mask = [1] * len(flaw_ids)
+
+        padding = [0] * (max_seq_length - len(flaw_ids))
+        flaw_ids += padding
+        flaw_mask += padding
+        flaw_labels += padding
+
+        assert len(flaw_ids) == max_seq_length
+        assert len(flaw_mask) == max_seq_length
+        assert len(flaw_labels) == max_seq_length
+        
+        features.append(InputFeatures_flaw(flaw_ids=flaw_ids, flaw_mask=flaw_mask, flaw_labels=flaw_labels))
+    
+    return features
+
+
 
 class DataProcessor(object):
     """Base class for data converters for sequence classification data sets."""

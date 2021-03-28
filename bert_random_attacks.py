@@ -120,54 +120,56 @@ def convert_examples_to_features_disc_train(examples, label_list, max_seq_length
                                          label_id=label_id))
     return features,w2i,i2w,index
 
-def convert_examples_to_features_flaw_attacks(examples, max_seq_length, max_ngram_length, tokenizer, i2w, embeddings=None,
-                                      emb_index=None, words=None):
-    """Loads a data file into a list of `InputBatch`s."""
+# def convert_examples_to_features_flaw_attacks(examples, max_seq_length, max_ngram_length, tokenizer, i2w, embeddings=None,
+#                                       emb_index=None, words=None):
+#     """Loads a data file into a list of `InputBatch`s."""
 
-    features = []
-    print("examples: ", examples)
+#     features = []
+#     print("examples: ", examples)
 
-    for (ex_index, example) in enumerate(examples):
+#     for (ex_index, example) in enumerate(examples):
 
-        tokens = example
-        print("example: ", example[0])
-        flaw_labels = []
-        flaw_tokens, flaw_pieces = [], []
+#         tokens = example
+#         print("example: ", example[0])
+#         flaw_labels = []
+#         flaw_tokens, flaw_pieces = [], []
 
-        for tok_id in tokens:
+#         for tok_id in tokens:
+            
+#             print("tok_id : ",tok_id)
 
-            if tok_id == 0: break
+#             if tok_id == 0: break
 
-            tok = i2w[tok_id]
+#             tok = i2w[tok_id]
 
-            label, tok_flaw = random_attack(tok, embeddings, emb_index, words)  # embeddings
-            word_pieces = tokenizer.tokenize(tok_flaw)
+#             label, tok_flaw = random_attack(tok, embeddings, emb_index, words)  # embeddings
+#             word_pieces = tokenizer.tokenize(tok_flaw)
 
-            flaw_labels += [label] * len(word_pieces)
-            flaw_pieces += word_pieces
+#             flaw_labels += [label] * len(word_pieces)
+#             flaw_pieces += word_pieces
 
-            flaw_tokens.append(tok_flaw)
+#             flaw_tokens.append(tok_flaw)
 
-            if len(flaw_pieces) > max_seq_length - 2:
-                flaw_pieces = flaw_pieces[:(max_seq_length - 2)]
-                flaw_labels = flaw_labels[:(max_seq_length - 2)]
-                break
+#             if len(flaw_pieces) > max_seq_length - 2:
+#                 flaw_pieces = flaw_pieces[:(max_seq_length - 2)]
+#                 flaw_labels = flaw_labels[:(max_seq_length - 2)]
+#                 break
 
-        flaw_pieces = ["[CLS]"] + flaw_pieces + ["[SEP]"]
-        flaw_labels = [0] + flaw_labels + [0]
+#         flaw_pieces = ["[CLS]"] + flaw_pieces + ["[SEP]"]
+#         flaw_labels = [0] + flaw_labels + [0]
 
-        flaw_ids = tokenizer.convert_tokens_to_ids(flaw_pieces)
-        flaw_mask = [1] * len(flaw_ids)
+#         flaw_ids = tokenizer.convert_tokens_to_ids(flaw_pieces)
+#         flaw_mask = [1] * len(flaw_ids)
 
-        padding = [0] * (max_seq_length - len(flaw_ids))
-        flaw_ids += padding
-        flaw_mask += padding
-        flaw_labels += padding
+#         padding = [0] * (max_seq_length - len(flaw_ids))
+#         flaw_ids += padding
+#         flaw_mask += padding
+#         flaw_labels += padding
 
-        assert len(flaw_ids) == max_seq_length
-        assert len(flaw_mask) == max_seq_length
-        assert len(flaw_labels) == max_seq_length
-    return features
+#         assert len(flaw_ids) == max_seq_length
+#         assert len(flaw_mask) == max_seq_length
+#         assert len(flaw_labels) == max_seq_length
+#     return features
 
 def main():
     parser = argparse.ArgumentParser()
@@ -229,9 +231,39 @@ def main():
     parser.add_argument("--output_dir_attacks",
                         action='store_true',
                         help="The output directory where the .tsv with flaw_ids and falw_labels need to be created")
+    parser.add_argument("--local_rank",
+                        type=int,
+                        default=-1,
+                        help="local_rank for distributed training on gpus")
     args = parser.parse_args()
 
     ## Execution Code
+    
+    
+    # GPU or CPU ? 
+    # Comment the if else block for no CUDA
+#   if args.local_rank == -1 or args.no_cuda:
+#         device = torch.device("cuda" if torch.cuda.is_available() and not args.no_cuda else "cpu")
+#         n_gpu = torch.cuda.device_count()
+#    else:
+#         torch.cuda.set_device(args.local_rank)
+#         device = torch.device("cuda", args.local_rank)
+#         n_gpu = 1
+#         # Initializes the distributed backend which will take care of sychronizing nodes/GPUs
+#         torch.distributed.init_process_group(backend='nccl')    
+    #device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cpu") # uncomment this for no GPU 
+    #logger.info("device: {} , distributed training: {}, 16-bits training: {}".format(
+     #   device, bool(args.local_rank != -1), args.fp16))
+
+
+    # Prepare model
+#     cache_dir = args.cache_dir if args.cache_dir else os.path.join(PYTORCH_PRETRAINED_BERT_CACHE,
+#                                                                    'distributed_{}'.format(args.local_rank))
+#     model = BertForDiscriminator.from_pretrained(args.bert_model, cache_dir=cache_dir, num_labels=num_labels)
+#     model.to(device)
+    
+    
     #data_dir= "./data/sst-2/dev_attacks.tsv"
     task_name = args.task_name.lower()
 
@@ -253,6 +285,7 @@ def main():
                                                                                   args.max_seq_length, tokenizer)
     all_tokens = torch.tensor([f.token_ids for f in features_for_attacks], dtype=torch.long)
     all_label_id = torch.tensor([f.label_id for f in features_for_attacks], dtype=torch.long)
+     
 
     data_for_attacks = TensorDataset(all_tokens, all_label_id)
     sampler_for_attacks = RandomSampler(data_for_attacks)  # for NO GPU
@@ -279,17 +312,38 @@ def main():
     print("output_file", output_file)
     flaw_ids = []
     flaw_labels = []
+    all_tokens=list(all_tokens.detach().cpu().numpy())
+    all_label_id=list(all_label_id.detach().cpu().numpy())
     with open(output_file, "w") as csv_file:
-        for step, tokens in enumerate(tqdm(dataloader_for_attack, desc="attacks")):
+        for step, batch in enumerate(tqdm(dataloader_for_attack, desc="attacks")):
+            
+            print("STEP: SBPLSHP: ", step)
+            batch = tuple(t.to(device) for t in batch)
+            tokens,_ = batch #, label_id, ngram_ids, ngram_labels, ngram_masks
+            tokens = tokens.to('cpu').numpy() 
+            
             features_with_flaws = convert_examples_to_features_flaw_attacks(tokens,
-                                                                args.max_seq_length, args.max_ngram_length,tokenizer, i2w, embeddings=None, emb_index=None, words=None)
-            flaw_ids = [f.flaw_ids for f in features_with_flaws]
-            flaw_labels = [f.flaw_labels for f in features_with_flaws]
+                                                                            args.max_seq_length, args.max_ngram_length,tokenizer, i2w,
+                                                                            embeddings=None, emb_index=None, words=None)
+            flaw_ids = torch.tensor([f.flaw_ids for f in features_with_flaws])
+            flaw_labels = torch.tensor([f.flaw_labels for f in features_with_flaws])
+            print("flaw_ids: ", flaw_ids.shape)
 
-        for indx, item in enumerate(range(len(flaw_ids))):
+        #for indx, item in enumerate(range(len(flaw_ids))):
             writer = csv.writer(csv_file, delimiter='\t')
             #writer.writerow(["sentence", "label"])
-            writer.writerow([all_tokens,all_label_id, flaw_ids]) # need to write the token
+            flaw_ids_ar=flaw_ids.detach().cpu().numpy()
+            flaw_ids_lst=flaw_ids.tolist()
+            writer.writerow([all_tokens[step],all_label_id[step], flaw_ids_lst]) # need to write the token
+            print("SBPLSHP all_tokens type : ", type(all_tokens))
+            print("SBPLSHP all_tokens Len : ", len(all_tokens))
+            print("SBPLSHP all_tokens step: ", all_tokens[step])
+            print("all_label_id : type : ", type(all_label_id))
+            print("all_label_id : Len : ", len(all_label_id))
+            print("all_label_id :  : ", all_label_id)            
+            print("flaw_ids : type : ", type(flaw_ids))
+            print("flaw_ids : Len : ", len(flaw_ids))
+            print("flaw_ids : : ", flaw_ids)            
             
 #                         output_file = os.path.join(args.data_dir, "epoch"+str(epoch)+"disc_outputs.tsv")
 #             with open(output_file,"w") as csv_file:
