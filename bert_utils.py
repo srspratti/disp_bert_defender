@@ -224,7 +224,7 @@ def convert_examples_to_features_disc_eval(examples, label_list, max_seq_length,
             print("example.flaw_labels is not None: block ")
             if example.flaw_labels == '': flaw_ids = [-1]
             else:
-                flaw_ids = [int(x) for x in (example.flaw_labels).split(',')]
+                flaw_ids = [int(x) for x in (example.flaw_labels).strip('"').strip(' ').split(',')]
                 #print("flaw_ids strip split block: ")
                 #flaw_ids = [int(x) for x in (example.flaw_labels).strip('"').split(',')]
         
@@ -790,6 +790,7 @@ class SST2Processor(DataProcessor):
         """Creates examples for the training and dev sets."""
         examples = []
         for (i, line) in enumerate(lines):
+            print("line :", line)
             flaw_labels = None
             if i == 0:
                 continue
