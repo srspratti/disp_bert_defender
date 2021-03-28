@@ -317,7 +317,7 @@ def main():
     with open(output_file, "w") as csv_file:
         for step, batch in enumerate(tqdm(dataloader_for_attack, desc="attacks")):
             
-            print("STEP: SBPLSHP: ", step)
+            #print("STEP: SBPLSHP: ", step)
             batch = tuple(t.to(device) for t in batch)
             tokens,_ = batch #, label_id, ngram_ids, ngram_labels, ngram_masks
             tokens = tokens.to('cpu').numpy() 
@@ -335,15 +335,15 @@ def main():
             flaw_ids_ar=flaw_ids.detach().cpu().numpy()
             flaw_ids_lst=flaw_ids.tolist()
             writer.writerow([all_tokens[step],all_label_id[step], flaw_ids_lst]) # need to write the token
-            print("SBPLSHP all_tokens type : ", type(all_tokens))
-            print("SBPLSHP all_tokens Len : ", len(all_tokens))
-            print("SBPLSHP all_tokens step: ", all_tokens[step])
-            print("all_label_id : type : ", type(all_label_id))
-            print("all_label_id : Len : ", len(all_label_id))
-            print("all_label_id :  : ", all_label_id)            
-            print("flaw_ids : type : ", type(flaw_ids))
-            print("flaw_ids : Len : ", len(flaw_ids))
-            print("flaw_ids : : ", flaw_ids)            
+#             print("SBPLSHP all_tokens type : ", type(all_tokens))
+#             print("SBPLSHP all_tokens Len : ", len(all_tokens))
+#             print("SBPLSHP all_tokens step: ", all_tokens[step])
+#             print("all_label_id : type : ", type(all_label_id))
+#             print("all_label_id : Len : ", len(all_label_id))
+#             print("all_label_id :  : ", all_label_id)            
+#             print("flaw_ids : type : ", type(flaw_ids))
+#             print("flaw_ids : Len : ", len(flaw_ids))
+#             print("flaw_ids : : ", flaw_ids)            
             
 #                         output_file = os.path.join(args.data_dir, "epoch"+str(epoch)+"disc_outputs.tsv")
 #             with open(output_file,"w") as csv_file:

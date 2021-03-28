@@ -224,9 +224,9 @@ def convert_examples_to_features_disc_eval(examples, label_list, max_seq_length,
             print("example.flaw_labels is not None: block ")
             if example.flaw_labels == '': flaw_ids = [-1]
             else:
-                #flaw_ids = [int(x) for x in (example.flaw_labels).split(',')]
-                print("flaw_ids strip split block: ")
-                flaw_ids = [int(x) for x in (example.flaw_labels).strip('"').split(',')]
+                flaw_ids = [int(x) for x in (example.flaw_labels).split(',')]
+                #print("flaw_ids strip split block: ")
+                #flaw_ids = [int(x) for x in (example.flaw_labels).strip('"').split(',')]
         
         # flaw_ids: the index of flaw words on word-level
         # flaw_labels: the index of flaw words on wordpiece-level
