@@ -32,11 +32,11 @@ def _read_tsv(cls, input_file, quotechar=None):
                 return lines
 
 
-def get_dev_examples_for_attacks(self, data_dir):
-    if 'tsv' in data_dir:
-        return create_examples(self._read_tsv(data_dir), "dev_attacks")
-    else:
-        return create_examples(self._read_tsv(os.path.join(data_dir, "dev_attacks.tsv")), "dev")
+# def get_dev_examples_for_attacks(self, data_dir):
+#     if 'tsv' in data_dir:
+#         return create_examples(self._read_tsv(data_dir), "dev_attacks")
+#     else:
+#         return create_examples(self._read_tsv(os.path.join(data_dir, "dev_attacks.tsv")), "dev")
 
 #     def get_dev_examples(self, data_dir):
 #         """See base class."""
@@ -63,21 +63,34 @@ def get_dev_examples_for_attacks(self, data_dir):
 #                 InputExample(guid=guid, text_a=text_a, text_b=None, label=label, flaw_labels=flaw_labels))
 #         return examples
     
-def create_examples(self,lines):
-    "Create examples for attacks"
-    sentences = []
-    labels=[]
-    for (i, line) in enumerate(lines):
-        flaw_labels = None
-        if i == 0:
-            continue
-            text_a = line[0]
-            label = line[1]
-            #if len(line) == 3: flaw_labels = line[2]
-            sentences.append(text_a)
-            labels.append(label)
-        return sentences,labels
-
+# def create_examples_for_attacks(self,lines):
+#     "Create examples for attacks"
+#     sentences = []
+#     labels=[]
+#     for (i, line) in enumerate(lines):
+#         flaw_labels = None
+#         if i == 0:
+#             continue
+#             text_a = line[0]
+#             label = line[1]
+#             #if len(line) == 3: flaw_labels = line[2]
+#             sentences.append(text_a)
+#             labels.append(label)
+#         return sentences,labels
+    
+#     def _create_examples(self, lines, set_type):
+#         """Creates examples for the training and dev sets."""
+#         examples = []
+#         for (i, line) in enumerate(lines):
+#             guid = "%s-%s" % (set_type, i)
+#             flaw_labels = None
+#             text_a = line[1]
+#             label = line[0]
+#             if len(line) == 3: flaw_labels = line[2]
+#             examples.append(
+#                 InputExample(guid=guid, text_a=text_a, text_b=None, label=label, flaw_labels=flaw_labels))
+#         return examples
+    
 def convert_examples_to_features_disc_train(examples, label_list, max_seq_length, tokenizer, w2i={}, i2w={}, index=1):
     """Loads a data file into a list of `InputBatch`s."""
 
@@ -210,9 +223,12 @@ def main():
                         type=str,
                         required=True,
                         help="The name of the task e.g. sst-2 or imdb to generate attacks")
-        parser.add_argument("--do_lower_case",
+    parser.add_argument("--do_lower_case",
                         action='store_true',
                         help="Set this flag if you are using an uncased model.")
+    parser.add_argument("--output_dir_attacks",
+                        action='store_true',
+                        help="The output directory where the .tsv with flaw_ids and falw_labels need to be created")
     args = parser.parse_args()
 
     ## Execution Code
@@ -231,7 +247,7 @@ def main():
     examples_for_attacks = None
     all_tokens = []
     all_label_id = []
-    examples_for_attacks = get_dev_examples_for_attacks(args.data_dir)
+    examples_for_attacks = processor.get_dev_examples_for_attacks(args.data_dir)
     features_for_attacks, w2i, i2w, vocab_size = convert_examples_to_features_disc_train(examples_for_attacks,
                                                                                    label_list,
                                                                                   args.max_seq_length, tokenizer)
@@ -242,7 +258,7 @@ def main():
     sampler_for_attacks = RandomSampler(data_for_attacks)  # for NO GPU
     # train_sampler = DistributedSampler(train_data)
 
-    dataloader_for_attack = DataLoader(data_for_attacks, sampler=sampler_for_attacks, batch_size=args.train_batch_size)
+    dataloader_for_attack = DataLoader(data_for_attacks, sampler=sampler_for_attacks)
 
     logger.info("Loading word embeddings for generating attacks... ")
     emb_dict, emb_vec, vocab_list, emb_vocab_size = load_vectors(args.word_embedding_file)
@@ -258,8 +274,9 @@ def main():
 
     # examples_for_attacks = None
     # w2i, i2w, vocab_size = {}, {}, 1
-
-    output_file = os.path.join(args.data_dir, "disc_for_attacks_outputs.tsv")
+    dir_path="./data/sst-2/add_1/"
+    output_file = os.path.join(dir_path, "disc_for_attacks_outputs.tsv")
+    print("output_file", output_file)
     flaw_ids = []
     flaw_labels = []
     with open(output_file, "w") as csv_file:
@@ -273,6 +290,11 @@ def main():
             writer = csv.writer(csv_file, delimiter='\t')
             #writer.writerow(["sentence", "label"])
             writer.writerow([all_tokens,all_label_id, flaw_ids]) # need to write the token
+            
+#                         output_file = os.path.join(args.data_dir, "epoch"+str(epoch)+"disc_outputs.tsv")
+#             with open(output_file,"w") as csv_file:
+#                 writer = csv.writer(csv_file, delimiter='\t')
+#                 writer.writerow(["sentence", "label", "ids"])
 
 if __name__ == "__main__":
     main()

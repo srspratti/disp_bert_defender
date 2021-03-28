@@ -686,7 +686,18 @@ class SST2Processor(DataProcessor):
         else:
             return self._create_examples(
                 self._read_tsv(os.path.join(data_dir, "dev.tsv")), "dev")
-
+    
+    # User Added Method - for generating random attacks similar to DISP
+    def get_dev_examples_for_attacks(self, data_dir):
+#         if 'tsv' in data_dir:
+#             return self.create_examples(self._read_tsv(data_dir), "dev_attacks")
+#         else:
+#             return self.create_examples(self._read_tsv(os.path.join(data_dir, "dev_attacks.tsv")), "dev")
+        if 'tsv' in data_dir:
+            return self._create_examples(self._read_tsv(data_dir), "dev_attacks")
+        else:
+            return self._create_examples(self._read_tsv(os.path.join(data_dir, "dev_attacks.tsv")), "dev")
+    
     def get_disc_dev_examples(self, data_dir):
         """See base class."""
         print("data_dir value : ", data_dir)
@@ -732,6 +743,21 @@ class SST2Processor(DataProcessor):
                 InputExample(guid=guid, text_a=text_a, text_b=None, label=label, flaw_labels=flaw_labels))
         return examples
 
+    def create_examples_for_attacks(self,lines):
+        "Create examples for attacks"
+        sentences = []
+        labels=[]
+        for (i, line) in enumerate(lines):
+            flaw_labels = None
+            if i == 0:
+                continue
+            text_a = line[0]
+            label = line[1]
+            #if len(line) == 3: flaw_labels = line[2]
+            sentences.append(text_a)
+            labels.append(label)
+        return sentences,labels
+    
 
 def attack_char(token):
 
