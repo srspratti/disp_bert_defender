@@ -216,12 +216,12 @@ def convert_examples_to_features_disc_eval(examples, label_list, max_seq_length,
     for (ex_index, example) in enumerate(examples):
 
         flaw_ids = []
-        print("ex_index; ",ex_index)
+        #print("ex_index; ",ex_index)
         tokens = word_tokenize(example.text_a)
         if len(tokens) > max_seq_length:
             tokens = tokens[:max_seq_length]
         if example.flaw_labels is not None:
-            print("example.flaw_labels is not None: block ")
+           # print("example.flaw_labels is not None: block ")
             if example.flaw_labels == '': flaw_ids = [-1]
             else:
                 flaw_ids = [int(x) for x in (example.flaw_labels).strip('"').strip(' ').split(',')]
@@ -507,18 +507,18 @@ def convert_examples_to_features_flaw(examples, max_seq_length, max_ngram_length
     """Loads a data file into a list of `InputBatch`s."""
 
     features = []
-    print("examples: ", examples)
+    #print("examples: ", examples)
 
     for (ex_index, example) in enumerate(examples):
 
         tokens = example
-        print("example: ", example[0])
+        #print("example: ", example[0])
         flaw_labels = []
         flaw_tokens, flaw_pieces = [], []
 
         for tok_id in tokens:  
             
-            print("tok_id : ",tok_id)
+            #print("tok_id : ",tok_id)
 
             if tok_id == 0: break
 
@@ -572,18 +572,18 @@ def convert_examples_to_features_flaw_attacks(examples, max_seq_length, max_ngra
     """Loads a data file into a list of `InputBatch`s."""
 
     features = []
-    print("examples: ", examples)
+    #print("examples: ", examples)
 
     for (ex_index, example) in enumerate(examples):
 
         tokens = example
-        print("example: ", example[0])
+        #print("example: ", example[0])
         flaw_labels = []
         flaw_tokens, flaw_pieces = [], []
 
         for tok_id in tokens:
             
-            print("tok_id : ",tok_id)
+            #print("tok_id : ",tok_id)
 
             if tok_id == 0: break
 
@@ -759,13 +759,13 @@ class SST2Processor(DataProcessor):
     
     def get_disc_dev_examples(self, data_dir):
         """See base class."""
-        print("data_dir value : ", data_dir)
+        #print("data_dir value : ", data_dir)
         if 'tsv' in data_dir:
-            print("tsv in data_dir")
+            #print("tsv in data_dir")
             return self._create_examples(
                 self._read_tsv(data_dir), "dev")
         else:
-            print("tsv not in data_dir")
+            #print("tsv not in data_dir")
             return self._create_examples(
             self._read_tsv(os.path.join(data_dir, "disc_dev.tsv")), "dev")
 
@@ -791,7 +791,7 @@ class SST2Processor(DataProcessor):
         """Creates examples for the training and dev sets."""
         examples = []
         for (i, line) in enumerate(lines):
-            print("line :", line)
+            #print("line :", line)
             flaw_labels = None
             if i == 0:
                 continue
@@ -839,17 +839,24 @@ def get_pad(batch,num_dim):
     pad=[[0] * (num_dim - len(batch))]
     #flat_pad = [item_more for sublist in pad for item in sublist for item_more in item]
     flat_pad = [item for sublist in pad for item in sublist]
-    print("batch in get_pad: ", batch)
-    print("flat_pad in get_pad: ",flat_pad)
-    print("len of batch in get_pad: ", len(batch))
-    print("len of flat_pad in get_pad: ",len(flat_pad))
+    
+#     print("batch in get_pad: ", batch)
+#     print("flat_pad in get_pad: ",flat_pad)
+#     print("len of batch in get_pad: ", len(batch))
+#     print("len of flat_pad in get_pad: ",len(flat_pad))
+    
     #print("batch and extend flat_pad: ", batch.extend(flat_pad))
+    
     batch_pad = list(np.append(batch, flat_pad))
+    
     #return batch_flat.extend(flat_pad)
     #return batch.extend(flat_pad)
-    print("batch and append flat_pad: ", batch_pad)
-    print("length of batch and append flat_pad: ", len(batch_pad))
+    
+#     print("batch and append flat_pad: ", batch_pad)
+#     print("length of batch and append flat_pad: ", len(batch_pad))
+    
     return batch_pad
+    
     #return flat_pad
 
     
@@ -873,15 +880,15 @@ def load_embeddings_and_save_index(labels, emb_vec, index_path):
     for idx, it in enumerate(emb_vec):
         #print("printing it:   ",len(it))
         if len(it)!=300:
-            print("printing it: ",len(it))
-            print("Index : ",idx)
+            #print("printing it: ",len(it))
+            #print("Index : ",idx)
     #max_cols = max([len(batch) for batch in emb_vec])
     max_cols=num_dim
-    print("maximum no. of cols: ", max_cols)
+    #print("maximum no. of cols: ", max_cols)
     #max_rows = max([len(batch) for batch in emb_vec])
     max_rows=num_words
-    print("maximum no. of rows: ", max_rows)
-    print("emb_vec 0 length: ",len(emb_vec[0]))
+    #print("maximum no. of rows: ", max_rows)
+    #print("emb_vec 0 length: ",len(emb_vec[0]))
     #emb_vec_padded = [batch + [[0] * (max_cols)] * (max_cols - len(batch)) for batch in emb_vec]
     #emb_vec_padded = [batch + [[0] * (max_cols - len(batch))] for batch in emb_vec]
         #ngram_embeddings_padded = torch.tensor([row + [0] * (max_rows - len(row)) for batch in ngram_embeddings_padded for row in batch])
@@ -916,12 +923,12 @@ def load_embeddings_and_save_index(labels, emb_vec, index_path):
         #if len(it_pad)!=301:
          #   print("printing it_pad: ",len(it_pad))
           #  print("Index of Pad: ", idx_pad)
-    print("No. Of Dimensions: ", num_dim)
-    print("type of emb_vec : ",type(emb_vec))
-    print("type of labels: ",type(labels))
-    print("len of emb_vec : ",emb_vec_ar.shape)
-    print("emb_vec_padded_ar shape : ",emb_vec_padded_ar.shape)
-    print("len of labels: ",len(labels_ls))
+#     print("No. Of Dimensions: ", num_dim)
+#     print("type of emb_vec : ",type(emb_vec))
+#     print("type of labels: ",type(labels))
+#     print("len of emb_vec : ",emb_vec_ar.shape)
+#     print("emb_vec_padded_ar shape : ",emb_vec_padded_ar.shape)
+#     print("len of labels: ",len(labels_ls))
     #p.add_items(emb_vec, labels_ls)
     #p.add_items(emb_vec_padded_ar, labels_ls)
     p.add_items(emb_vec_padded_ar, labels)
@@ -935,10 +942,10 @@ def load_embedding_index(index_path, vocab_size, num_dim=300):
     return p
 
 def query_most_similar_word_id_from_embedding(p, emb, n):
-    print("type of n; ", type(n))
-    print("Value of n: ", n)
-    print("type of emb: ", type(emb))
-    print("PRINTING emb: ", emb)
+#     print("type of n; ", type(n))
+#     print("Value of n: ", n)
+#     print("type of emb: ", type(emb))
+#     print("PRINTING emb: ", emb)
     finding = p.knn_query([emb], k=1)
     #labels, distances = p.knn_query([emb], k=n)
     #return finding[0][0]
@@ -1056,15 +1063,15 @@ def multiplyList(myList):
 def logit_converter(logits, chunks):
     # logits: (batch, sequence_length); padded
     # flaw_logits: (batch, sequence_length); padded
-    print("type chunks: ", type(chunks))
-    print("len of chunks: ", len(chunks))
-    print("type of logits: ", type(logits))
-    print("len of logits : ", len(logits))
+#     print("type chunks: ", type(chunks))
+#     print("len of chunks: ", len(chunks))
+#     print("type of logits: ", type(logits))
+#     print("len of logits : ", len(logits))
     max_seq_length = len(chunks[0])
     max_batch_size = len(chunks)
     flaw_logits = []
-    print("max_seq_length sbplshp :  ", max_seq_length)
-    print("max_batch_size sbplshp : ", max_batch_size)
+#     print("max_seq_length sbplshp :  ", max_seq_length)
+#     print("max_batch_size sbplshp : ", max_batch_size)
 
     for i in range(max_batch_size):
         flaw_logit = []

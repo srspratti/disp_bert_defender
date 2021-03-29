@@ -309,7 +309,7 @@ def main():
     # w2i, i2w, vocab_size = {}, {}, 1
     dir_path="./data/sst-2/add_1/"
     output_file = os.path.join(dir_path, "disc_for_attacks_outputs.tsv")
-    print("output_file", output_file)
+    #print("output_file", output_file)
     flaw_ids = []
     flaw_labels = []
     all_tokens=list(all_tokens.detach().cpu().numpy())
@@ -327,7 +327,7 @@ def main():
                                                                             embeddings=None, emb_index=None, words=None)
             flaw_ids = torch.tensor([f.flaw_ids for f in features_with_flaws])
             flaw_labels = torch.tensor([f.flaw_labels for f in features_with_flaws])
-            print("flaw_ids: ", flaw_ids.shape)
+            #print("flaw_ids: ", flaw_ids.shape)
 
         #for indx, item in enumerate(range(len(flaw_ids))):
             writer = csv.writer(csv_file, delimiter='\t')

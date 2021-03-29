@@ -425,15 +425,15 @@ def main():
                 with torch.no_grad():
                     tmp_eval_loss,s = model(input_ids, input_mask, flaw_labels)
                     
-                    print("tmp_eval_loss: ",tmp_eval_loss)
-                    print("s: ",s)
+#                     print("tmp_eval_loss: ",tmp_eval_loss)
+#                     print("s: ",s)
                     
                     logits = model(input_ids, input_mask)
                     
-                    print("len of logits: ",len(logits))
-                    print("shape of logits: ",logits.size())
-                    print("type of logits: ",type(logits))
-                    print("type of logits: ",logits)
+#                     print("len of logits: ",len(logits))
+#                     print("shape of logits: ",logits.size())
+#                     print("type of logits: ",type(logits))
+#                     print("type of logits: ",logits)
                     
                     flaw_logits = torch.argmax(logits, dim=2)
                     
@@ -451,22 +451,22 @@ def main():
                 
                 flaw_logits = logit_converter(flaw_logits, chunks) # each word only has one '1'
                 
-                print("Type of flaw_logits logit_converter: ",type(flaw_logits))
-                #print("shape of flaw_logits logit_converter : ",flaw_logits.size())
-                print("Length of flaw_logits logit_converter : ",len(flaw_logits))
-                print("flaw_logits logit_converter : ", flaw_logits)
+#                 print("Type of flaw_logits logit_converter: ",type(flaw_logits))
+#                 #print("shape of flaw_logits logit_converter : ",flaw_logits.size())
+#                 print("Length of flaw_logits logit_converter : ",len(flaw_logits))
+#                 print("flaw_logits logit_converter : ", flaw_logits)
                 
                 true_logits = []
                 
-                print("length of flaw_ids: ",len(flaw_ids))
+                #print("length of flaw_ids: ",len(flaw_ids))
                 
                 for i in range(len(flaw_ids)):
                     tmp = [0] * len(flaw_logits[i])
                     
-                    print("tmp: ",tmp)
-                    print("len of tmp: ",len(tmp))
-                    print("length of flaw_ids of i : ",len(flaw_ids[i]))
-                    print("flaw_ids[i]: ",flaw_ids[i])
+#                     print("tmp: ",tmp)
+#                     print("len of tmp: ",len(tmp))
+#                     print("length of flaw_ids of i : ",len(flaw_ids[i]))
+#                     print("flaw_ids[i]: ",flaw_ids[i])
                     
                     for j in range(len(flaw_ids[0])):
                         if flaw_ids[i][j] == 0: break
@@ -488,10 +488,10 @@ def main():
 
                 with open(output_file, "a") as csv_file:
                     for i in range(len(label_id)):
-                        print("i in write output file:",i)
+                        #print("i in write output file:",i)
                         token = ' '.join([i2w[x] for x in token_ids[i] if x != 0])
                         flaw_logit = flaw_logits[i]
-                        print("flaw_logit in write output file: ",flaw_logit)
+                        #print("flaw_logit in write output file: ",flaw_logit)
                         label = str(label_id[i])
                         logit = ','.join([str(i) for i,x in enumerate(flaw_logit) if x == 1]) # for trouble-shooting
                         logit = '-1' if logit == '' else logit # for trouble-shooting

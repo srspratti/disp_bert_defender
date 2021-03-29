@@ -229,25 +229,31 @@ def main():
         logger.info("  Num token vocab = %d", vocab_size)
         logger.info("  Batch size = %d", args.train_batch_size)
         logger.info("  Num steps = %d", num_train_optimization_steps)
-        print("train_features: ",type(train_features))
-        print("train_features 1st element : ",len(train_features[0].ngram_embeddings))
-        print("train_features length: ",len(train_features))
+        
+#         print("train_features: ",type(train_features))
+#         print("train_features 1st element : ",len(train_features[0].ngram_embeddings))
+#         print("train_features length: ",len(train_features))
+        
         all_ngram_ids = torch.tensor([f.ngram_ids for f in train_features], dtype=torch.long)
         all_ngram_labels = torch.tensor([f.ngram_labels for f in train_features], dtype=torch.long)
         all_ngram_masks = torch.tensor([f.ngram_masks for f in train_features], dtype=torch.long)
-        print("Type of ngram embeddings",type([f.ngram_embeddings for f in train_features]))
+        
+        #print("Type of ngram embeddings",type([f.ngram_embeddings for f in train_features]))
+        
         ngram_embeddings_lst=[f.ngram_embeddings for f in train_features]
-        print("args max ngram length: ",args.max_seq_length)
-        print("length of ngram_embeddings list: ",len(ngram_embeddings_lst))
+        
+#         print("args max ngram length: ",args.max_seq_length)
+#         print("length of ngram_embeddings list: ",len(ngram_embeddings_lst))
+        
         for it in ngram_embeddings_lst:
             print("printing it:   ",len(it))
             if len(it)!=(args.max_seq_length):
                 print("printing it: ",it)
         #target = [[[1,2,3], [2,4,5,6]], [[1,2,3], [2,4,5,6], [2,4,6,7,8]]]
         max_cols = max([len(row) for batch in ngram_embeddings_lst for row in batch])
-        print("maximum no. of cols: ", max_cols)
+        #print("maximum no. of cols: ", max_cols)
         max_rows = max([len(batch) for batch in ngram_embeddings_lst])
-        print("maximum no. of rows: ", max_rows)
+        #print("maximum no. of rows: ", max_rows)
         ngram_embeddings_padded = [batch + [[0] * (max_cols)] * (max_rows - len(batch)) for batch in ngram_embeddings_lst]
         ngram_embeddings_padded = torch.tensor([row + [0] * (max_rows - len(row)) for batch in ngram_embeddings_padded for row in batch])
         ngram_embeddings_padded = ngram_embeddings_padded.view(-1, max_rows, max_cols)
