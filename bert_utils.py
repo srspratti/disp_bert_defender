@@ -409,7 +409,8 @@ def convert_examples_to_features_gnrt_eval(examples, label_list, max_seq_length,
             tokens = tokens[:max_seq_length]
 
         if example.flaw_labels is not None: 
-            flaw_labels = [int(x) for x in (example.flaw_labels).split(',')] 
+            #flaw_labels = [int(x) for x in (example.flaw_labels).split(',')]
+            flaw_labels = [int(x) for x in (example.flaw_labels).strip('"').strip(' ').split(',')]
         # else:
         #     flaw_labels = list(range(len(tokens)))   
 
