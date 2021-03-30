@@ -8,5 +8,5 @@
 *.swp
 *.out
 ./models/
-./data/
+#./data/
 ./emb/

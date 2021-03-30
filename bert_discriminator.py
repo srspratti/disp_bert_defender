@@ -463,10 +463,10 @@ def main():
                 for i in range(len(flaw_ids)):
                     tmp = [0] * len(flaw_logits[i])
                     
-#                     print("tmp: ",tmp)
-#                     print("len of tmp: ",len(tmp))
-#                     print("length of flaw_ids of i : ",len(flaw_ids[i]))
-#                     print("flaw_ids[i]: ",flaw_ids[i])
+                    print("tmp: ",tmp)
+                    print("len of tmp: ",len(tmp))
+                    print("length of flaw_ids of i : ",len(flaw_ids[i]))
+                    print("flaw_ids[i]: ",flaw_ids[i])
                     
                     for j in range(len(flaw_ids[0])):
                         if flaw_ids[i][j] == 0: break
