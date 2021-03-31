@@ -607,12 +607,12 @@ def convert_examples_to_features_flaw_attacks(examples, max_seq_length, max_ngra
         # print("example: ", example[0])
         flaw_labels = []
         flaw_pieces = []
+        token_ids_seq = []
+        flaw_tokens_seq = []
 
         for idx, tok_id in enumerate(tokens):
 
             # print("tok_id : ",tok_id)
-            token_ids_seq = []
-            flaw_tokens_seq = []
 
             if tok_id == 0: break
 

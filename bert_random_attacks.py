@@ -345,7 +345,7 @@ def main():
             flaw_ids_lst=flaw_ids.tolist()
             flaw_labels_ar=flaw_labels.detach().cpu().numpy()
             flaw_labels_lst=flaw_labels.tolist()
-            writer.writerow([all_tokens[step], all_flaw_tokens[step], all_label_id[step], all_token_idx[step], flaw_ids_lst, flaw_labels_lst]) # need to write the token
+            writer.writerow([all_tokens[step], all_flaw_tokens, all_label_id[step], all_token_idx, flaw_ids_lst, flaw_labels_lst]) # need to write the token
 #             print("SBPLSHP all_tokens type : ", type(all_tokens))
 #             print("SBPLSHP all_tokens Len : ", len(all_tokens))
 #             print("SBPLSHP all_tokens step: ", all_tokens[step])
