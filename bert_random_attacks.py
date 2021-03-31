@@ -315,6 +315,7 @@ def main():
     all_tokens=list(all_tokens.detach().cpu().numpy())
     all_label_id=list(all_label_id.detach().cpu().numpy())
     with open(output_file, "w") as csv_file:
+        #writer.writerow([all_tokens[step], all_label_id[step], flaw_ids_lst, flaw_labels_lst])  # need to write the token
         for step, batch in enumerate(tqdm(dataloader_for_attack, desc="attacks")):
             
             #print("STEP: SBPLSHP: ", step)
@@ -322,11 +323,19 @@ def main():
             tokens,_ = batch #, label_id, ngram_ids, ngram_labels, ngram_masks
             tokens = tokens.to('cpu').numpy() 
             
-            features_with_flaws = convert_examples_to_features_flaw_attacks(tokens,
-                                                                            args.max_seq_length, args.max_ngram_length,tokenizer, i2w,
-                                                                            embeddings=None, emb_index=None, words=None)
+            features_with_flaws, all_flaw_tokens, all_token_idx = convert_examples_to_features_flaw_attacks(tokens,
+                                                                            args.max_seq_length, args.max_ngram_length,emb_dict,tokenizer, i2w,
+                                                                            embeddings=None, words=None)
+
+            print("all_flaw_tokens type: ", type(all_flaw_tokens))
+            print("all_flaw_tokens len: ", len(all_flaw_tokens))
+            print("all_token_idx type: ", type(all_token_idx))
+            print("all_token_idx len: ", len(all_token_idx))
+
+
             flaw_ids = torch.tensor([f.flaw_ids for f in features_with_flaws])
             flaw_labels = torch.tensor([f.flaw_labels for f in features_with_flaws])
+            #flaw_labels = torch.tensor([f.flaw_tokens for f in features_with_flaws])
             #print("flaw_ids: ", flaw_ids.shape)
 
         #for indx, item in enumerate(range(len(flaw_ids))):
@@ -336,7 +345,7 @@ def main():
             flaw_ids_lst=flaw_ids.tolist()
             flaw_labels_ar=flaw_labels.detach().cpu().numpy()
             flaw_labels_lst=flaw_labels.tolist()
-            writer.writerow([all_tokens[step],all_label_id[step], flaw_ids_lst,flaw_labels_lst]) # need to write the token
+            writer.writerow([all_tokens[step], all_flaw_tokens[step], all_label_id[step], all_token_idx[step], flaw_ids_lst, flaw_labels_lst]) # need to write the token
 #             print("SBPLSHP all_tokens type : ", type(all_tokens))
 #             print("SBPLSHP all_tokens Len : ", len(all_tokens))
 #             print("SBPLSHP all_tokens step: ", all_tokens[step])

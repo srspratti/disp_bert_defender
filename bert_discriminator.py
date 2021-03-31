@@ -381,6 +381,7 @@ def main():
         all_flaw_ids = torch.tensor([f.flaw_ids for f in eval_features], dtype=torch.long)
         all_label_id = torch.tensor([f.label_id for f in eval_features], dtype=torch.long)
         all_chunks = torch.tensor([f.chunks for f in eval_features], dtype=torch.long)
+        print("flaw ids in eval_features: ", all_flaw_ids)
 
         eval_data = TensorDataset(all_token_ids, all_input_ids, all_input_mask, all_flaw_ids, all_flaw_labels, all_label_id, all_chunks)
 
@@ -422,6 +423,8 @@ def main():
                 flaw_labels = flaw_labels.to(device)
                 flaw_ids = flaw_ids.to(device)
 
+                print("flaw ids in eval_dataloader: ", flaw_ids)
+
                 with torch.no_grad():
                     tmp_eval_loss,s = model(input_ids, input_mask, flaw_labels)
                     
@@ -458,30 +461,35 @@ def main():
                 
                 true_logits = []
                 
-                #print("length of flaw_ids: ",len(flaw_ids))
+                print("length of flaw_ids: ",len(flaw_ids))
                 
                 for i in range(len(flaw_ids)):
                     tmp = [0] * len(flaw_logits[i])
                     
                     #print("tmp: ",tmp) # ne line
+                    print("printing i:",i)
                     print("len of tmp: ",len(tmp))
                     print("length of flaw_ids of i : ",len(flaw_ids[i]))
                     print("flaw_ids[i]: ",flaw_ids[i])
                     
                     for j in range(len(flaw_ids[0])):
+                        print("flaw_ids[i][j] : ",flaw_ids[i][j])
+                        print("tmp value: ", tmp)
+                        print("tmp len: ", len(tmp))
                         if flaw_ids[i][j] == 0: break
                         if flaw_ids[i][j] >= len(tmp): continue
                         tmp[flaw_ids[i][j]] = 1
 
                     true_logits.append(tmp)
+                    print('true_logits: ', true_logits)
 
                 tmp_eval_accuracy = accuracy_2d(flaw_logits, true_logits)
                 eval_accuracy += tmp_eval_accuracy 
 
-                predictions += true_logits # Original 
-                truths += flaw_logits # Original 
-                #predictions += flaw_logits # for trouble-shooting
-                #truths += true_logits # for trouble-shooting
+                #predictions += true_logits # Original
+                #truths += flaw_logits # Original
+                predictions += flaw_logits # for trouble-shooting
+                truths += true_logits # for trouble-shooting
                 eval_loss += tmp_eval_loss.mean().item()
                 nb_eval_examples += input_ids.size(0)
                 nb_eval_steps += 1
