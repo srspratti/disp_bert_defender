@@ -317,7 +317,7 @@ def main():
     all_label_id=list(all_label_id.detach().cpu().numpy())
     
     with open(output_file, "w") as csv_file:
-        writer = csv.writer(csv_file, delimiter='\t')
+        writer = csv.writer(csv_file, delimiter='\t') #
         writer.writerow(["sentence-with-flaw_tokens", "label", "flaw_ids", "ground-truth-sentence","ground-truth-token_ids","Index_Ids", "flaw_labels"])
         #writer.writerow([all_tokens[step], all_label_id[step], flaw_ids_lst, flaw_labels_lst])  # need to write the token
         for step, batch in enumerate(tqdm(dataloader_for_attack, desc="attacks")):
