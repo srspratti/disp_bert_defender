@@ -628,9 +628,9 @@ def convert_examples_to_features_flaw_attacks(examples, max_seq_length, max_ngra
 
             print("label: ", label)
             flaw_tokens_seq.append(tok_flaw)
-            #if label == 1:
-            #    token_ids_seq.append(int(idx))
-            token_ids_seq.append(idx)
+            if label == 1:
+                token_ids_seq.append(int(idx))
+           # token_ids_seq.append(idx)
             print("idx: ", idx)
             print("tok_flaw: ", tok_flaw)
             print("flaw_tokens_seq: ", flaw_tokens_seq)
