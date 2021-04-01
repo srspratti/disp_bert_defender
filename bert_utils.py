@@ -591,15 +591,16 @@ def convert_examples_to_features_flaw(examples, max_seq_length, max_ngram_length
     return features
 
 
-def convert_examples_to_features_flaw_attacks(examples, max_seq_length, max_ngram_length, emb_index,tokenizer, i2w,
-                                              embeddings=None, words=None):
+def convert_examples_to_features_flaw_attacks(examples, max_seq_length, max_ngram_length, tokenizer, i2w, embeddings=None,
+                                      emb_index=None, words=None):
     """Loads a data file into a list of `InputBatch`s."""
 
     features = []
     all_flaw_tokens = []
     all_token_idx = []
 
-
+    print("emb_dict: ", emb_index)
+    print("embeddings:", embeddings)
     # print("examples: ", examples)
 
     for (ex_index, example) in enumerate(examples):
@@ -920,7 +921,7 @@ def load_embedding_index(index_path, vocab_size, num_dim=300):
 
 
 def query_most_similar_word_id_from_embedding(p, emb, n):
-    finding = p.knn_query([emb], k=1)
+    finding = p.knn_query([emb], k=n)
     return finding[0][0]
 
 
@@ -946,8 +947,9 @@ def attack_word(tok, p, emb_dict,
 
 
 def random_attack(tok, emb_dict, p, vocab_list):
-    #prob = np.random.random()
-    prob = 0.14
+    prob = np.random.random()
+    #prob = 0.14
+    print("Printing prob: ",prob)
     # attack token with 15% probability
     if prob < 0.15:
         prob /= 0.15

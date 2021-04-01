@@ -324,8 +324,8 @@ def main():
             tokens = tokens.to('cpu').numpy() 
             
             features_with_flaws, all_flaw_tokens, all_token_idx = convert_examples_to_features_flaw_attacks(tokens,
-                                                                            args.max_seq_length, args.max_ngram_length,emb_dict,tokenizer, i2w,
-                                                                            embeddings=None, words=None)
+                                                                            args.max_seq_length, args.max_ngram_length,tokenizer, i2w,
+                                                                            embeddings=None, emb_index=None,words=None)
 
             print("all_flaw_tokens type: ", type(all_flaw_tokens))
             print("all_flaw_tokens len: ", len(all_flaw_tokens))
