@@ -598,19 +598,18 @@ def convert_examples_to_features_flaw_attacks(examples, max_seq_length, max_ngra
     features = []
     all_flaw_tokens = []
     all_token_idx = []
+    all_truth_tokens = []
 
-    print("emb_dict: ", emb_index)
-    print("embeddings:", embeddings)
-    # print("examples: ", examples)
 
     for (ex_index, example) in enumerate(examples):
 
         tokens = example
-        # print("example: ", example[0])
+
         flaw_labels = []
         flaw_pieces = []
         token_ids_seq = []
         flaw_tokens_seq = []
+        truth_tokens_seq = []
 
         for idx, tok_id in enumerate(tokens):
 
@@ -619,6 +618,8 @@ def convert_examples_to_features_flaw_attacks(examples, max_seq_length, max_ngra
             if tok_id == 0: break
 
             tok = i2w[tok_id]
+
+            truth_tokens_seq.append(tok)
 
             label, tok_flaw = random_attack(tok, embeddings, emb_index, words)  # embeddings
             word_pieces = tokenizer.tokenize(tok_flaw)
@@ -631,20 +632,19 @@ def convert_examples_to_features_flaw_attacks(examples, max_seq_length, max_ngra
             if label == 1:
                 token_ids_seq.append(int(idx))
            # token_ids_seq.append(idx)
-            print("idx: ", idx)
-            print("tok_flaw: ", tok_flaw)
-            print("flaw_tokens_seq: ", flaw_tokens_seq)
-            print("token_ids_seq: ", token_ids_seq)
+            # print("idx: ", idx)
+            # print("tok_flaw: ", tok_flaw)
+            # print("flaw_tokens_seq: ", flaw_tokens_seq)
+            # print("token_ids_seq: ", token_ids_seq)
 
             if len(flaw_pieces) > max_seq_length - 2:
                 flaw_pieces = flaw_pieces[:(max_seq_length - 2)]
                 flaw_labels = flaw_labels[:(max_seq_length - 2)]
                 break
 
-        # all_flaw_tokens += flaw_tokens_seq
-        # all_token_idx += token_ids_seq
         all_flaw_tokens.append(flaw_tokens_seq)
         all_token_idx.append(token_ids_seq)
+        all_truth_tokens.append(truth_tokens_seq)
         flaw_pieces = ["[CLS]"] + flaw_pieces + ["[SEP]"]
         flaw_labels = [0] + flaw_labels + [0]
 
@@ -660,15 +660,9 @@ def convert_examples_to_features_flaw_attacks(examples, max_seq_length, max_ngra
         assert len(flaw_mask) == max_seq_length
         assert len(flaw_labels) == max_seq_length
 
-        # features.append(InputFeatures_flaw_attacks(flaw_ids=flaw_ids, flaw_mask=flaw_mask, flaw_labels=flaw_labels, flaw_tokens=flaw_tokens))
         features.append(InputFeatures_flaw(flaw_ids=flaw_ids, flaw_mask=flaw_mask, flaw_labels=flaw_labels))
 
-    # all_flaw_tokens.append(flaw_tokens_seq)
-    # all_token_idx.append(tokens_idx_seq)
-    print("all_flaw_tokens: ", all_flaw_tokens)
-    print("all_token_idx: ", all_token_idx)
-
-    return features, all_flaw_tokens, all_token_idx
+    return features, all_flaw_tokens, all_token_idx, all_truth_tokens
 
 
 class DataProcessor(object):

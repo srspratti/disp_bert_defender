@@ -312,29 +312,64 @@ def main():
     #print("output_file", output_file)
     flaw_ids = []
     flaw_labels = []
-    all_tokens=list(all_tokens.detach().cpu().numpy())
+    # all_Tokens to words - Start 
+    all_tokens=all_tokens.detach().cpu().numpy()
+    all_tokens_lst = all_tokens.tolist()
+    #print("all_tokens_lst: ", len(all_tokens_lst))
+    # all_tokens_to_words = []
+    # for all_token_idx in range(len(all_tokens_lst)):
+    #   #print("loop: ", all_token_idx)
+    #   #print("all_tokens_lst[all_token_idx] :", all_tokens_lst[all_token_idx])
+    #   all_tokens_cut = [tok for tok in all_tokens_lst[all_token_idx] if tok not in [0]]
+    #   print("all_tokens_cut:", all_tokens_cut)
+    #   #all_tokens_to_words[all_token_idx] = [ i2w[tokens_seq] for tokens_seq in all_tokens_lst[all_token_idx] if tokens_seq > 0 ]
+    #   tokens_to_words=[i2w[tok_cut] for tok_cut in all_tokens_cut]
+    #   all_tokens_to_words.append(tokens_to_words)
+    
+    # print("all_tokens_to_words: ", all_tokens_to_words)
+    # all_tokens_to_words = " ".join([y for x in all_tokens_to_words for y in x ])
+    # print("all_tokens_to_words after : ", all_tokens_to_words)
+
+    #print("all_tokens_lst: ", all_tokens_lst)
+    #print("all_tokens: ", all_tokens)
+    # changing the tokens to words using i2W:
+    #all_tokens tok = i2w[tok_id] 
+    #tokens_seq = [tokens_sent for tokens_sent in all_tokens]
+    #print("tokens_seq: ", tokens_seq)
+    #all_tokens_to_words = [i2w[tok_id] for tokens_seq in all_tokens for tok_id in tokens_seq]
+
+    # All tokens to words -end
+
     all_label_id=list(all_label_id.detach().cpu().numpy())
     with open(output_file, "w") as csv_file:
         writer = csv.writer(csv_file, delimiter='\t')
-        writer.writerow(["sentence-with-flaw_tokens", "label", "flaw_ids", "ground-truth-token_ids","Index_Ids", "flaw_labels"])
+        writer.writerow(["sentence-with-flaw_tokens", "label", "flaw_ids", "ground-truth-sentence","ground-truth-token_ids","Index_Ids", "flaw_labels"])
         #writer.writerow([all_tokens[step], all_label_id[step], flaw_ids_lst, flaw_labels_lst])  # need to write the token
         for step, batch in enumerate(tqdm(dataloader_for_attack, desc="attacks")):
             
             print("STEP: SBPLSHP: ", step)
             batch = tuple(t.to(device) for t in batch)
-            tokens,_ = batch #, label_id, ngram_ids, ngram_labels, ngram_masks
+            #print("printing batch : ", batch)
+            tokens,sa = batch #, label_id, ngram_ids, ngram_labels, ngram_masks
             tokens = tokens.to('cpu').numpy() 
+            #print("printing sa: ", sa)
             
-            features_with_flaws, all_flaw_tokens, all_token_idx = convert_examples_to_features_flaw_attacks(tokens,
+            features_with_flaws, all_flaw_tokens, all_token_idx, all_truth_tokens = convert_examples_to_features_flaw_attacks(tokens,
                                                                             args.max_seq_length, args.max_ngram_length,tokenizer, i2w,
                                                                             embeddings=None, emb_index=None,words=None)
 
-            print("all_flaw_tokens type: ", type(all_flaw_tokens))
-            print("all_flaw_tokens len: ", len(all_flaw_tokens))
-            print("all_token_idx type: ", type(all_token_idx))
-            print("all_token_idx len: ", len(all_token_idx))
+            #print("all_flaw_tokens type: ", type(all_flaw_tokens))
+            #print("all_flaw_tokens len: ", len(all_flaw_tokens))
+            #print("all_token_idx type: ", type(all_token_idx))
+            #print("all_token_idx len: ", len(all_token_idx))
+            #print("all_truth_tokens : ", all_truth_tokens)
 
             all_token_idx = ",".join([str(id) for tok in all_token_idx for id in tok])
+            all_truth_tokens_flat = " ".join([str(id) for tok in all_truth_tokens for id in tok])
+            #print("all_truth_tokens_flat: ", all_truth_tokens_flat)
+            #all_tokens_idx_cut = [tok for tok in all_token_idx if tok not in [0] ]
+            #tokens_to_words_sent = [ i2w[tok_cut] for tok_cut in all_tokens_idx_cut]
+            #tokens_to_words_Sent = " ".join([x for x in tokens_to_words_sent])
 
             flaw_ids = torch.tensor([f.flaw_ids for f in features_with_flaws])
             flaw_labels = torch.tensor([f.flaw_labels for f in features_with_flaws])
@@ -342,15 +377,18 @@ def main():
             #print("flaw_ids: ", flaw_ids.shape)
 
             all_flaw_tokens = " ".join([str(y) for x in all_flaw_tokens for y in x])
+            #all_tokens_to_words[all_token_idx]=[ i2w[tok_cut] for tok_cut in all_tokens_cut]
+            
             #all_flaw_tokens = " ".join(''.join(x for x in all_flaw_tokens))
             #all_flaw_tokens = ''.join(str(x) for x in all_flaw_tokens)
-            print("all_flaw_tokens: ", all_flaw_tokens)
+            #print("all_flaw_tokens: ", all_flaw_tokens)
             writer = csv.writer(csv_file, delimiter='\t')
             flaw_ids_ar=flaw_ids.detach().cpu().numpy()
             flaw_ids_lst=flaw_ids.tolist()
             flaw_labels_ar=flaw_labels.detach().cpu().numpy()
             flaw_labels_lst=flaw_labels.tolist()
-            writer.writerow([all_flaw_tokens, all_label_id[step], all_token_idx,all_tokens[step], flaw_ids_lst, flaw_labels_lst])
+            #writer.writerow(["sentence-with-flaw_tokens", "label", "flaw_ids", "ground-truth-sentence","ground-truth-token_ids","Index_Ids", "flaw_labels"])
+            writer.writerow([all_flaw_tokens, all_label_id[step],  all_token_idx,all_truth_tokens_flat,all_tokens[step], flaw_ids_lst, flaw_labels_lst])
 if __name__ == "__main__":
     main()
 
