@@ -548,6 +548,7 @@ def convert_examples_to_features_flaw(examples, max_seq_length, max_ngram_length
 
             label, tok_flaw = random_attack(tok, embeddings, emb_index, words)  # embeddings
             word_pieces = tokenizer.tokenize(tok_flaw)
+            print("label: ", label)
 
             flaw_labels += [label] * len(word_pieces)
             flaw_pieces += word_pieces
