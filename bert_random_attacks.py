@@ -320,7 +320,7 @@ def main():
         #writer.writerow([all_tokens[step], all_label_id[step], flaw_ids_lst, flaw_labels_lst])  # need to write the token
         for step, batch in enumerate(tqdm(dataloader_for_attack, desc="attacks")):
             
-            #print("STEP: SBPLSHP: ", step)
+            print("STEP: SBPLSHP: ", step)
             batch = tuple(t.to(device) for t in batch)
             tokens,_ = batch #, label_id, ngram_ids, ngram_labels, ngram_masks
             tokens = tokens.to('cpu').numpy() 
