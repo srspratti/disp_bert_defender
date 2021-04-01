@@ -315,6 +315,8 @@ def main():
     all_tokens=list(all_tokens.detach().cpu().numpy())
     all_label_id=list(all_label_id.detach().cpu().numpy())
     with open(output_file, "w") as csv_file:
+        writer = csv.writer(csv_file, delimiter='\t')
+        writer.writerow(["sentence-with-flaw_tokens", "label", "flaw_ids", "ground-truth-token_ids","Index_Ids", "flaw_labels"])
         #writer.writerow([all_tokens[step], all_label_id[step], flaw_ids_lst, flaw_labels_lst])  # need to write the token
         for step, batch in enumerate(tqdm(dataloader_for_attack, desc="attacks")):
             
@@ -332,35 +334,23 @@ def main():
             print("all_token_idx type: ", type(all_token_idx))
             print("all_token_idx len: ", len(all_token_idx))
 
+            all_token_idx = ",".join([str(id) for tok in all_token_idx for id in tok])
 
             flaw_ids = torch.tensor([f.flaw_ids for f in features_with_flaws])
             flaw_labels = torch.tensor([f.flaw_labels for f in features_with_flaws])
             #flaw_labels = torch.tensor([f.flaw_tokens for f in features_with_flaws])
             #print("flaw_ids: ", flaw_ids.shape)
 
-        #for indx, item in enumerate(range(len(flaw_ids))):
+            all_flaw_tokens = " ".join([str(y) for x in all_flaw_tokens for y in x])
+            #all_flaw_tokens = " ".join(''.join(x for x in all_flaw_tokens))
+            #all_flaw_tokens = ''.join(str(x) for x in all_flaw_tokens)
+            print("all_flaw_tokens: ", all_flaw_tokens)
             writer = csv.writer(csv_file, delimiter='\t')
-            #writer.writerow(["sentence", "label"])
             flaw_ids_ar=flaw_ids.detach().cpu().numpy()
             flaw_ids_lst=flaw_ids.tolist()
             flaw_labels_ar=flaw_labels.detach().cpu().numpy()
             flaw_labels_lst=flaw_labels.tolist()
-            writer.writerow([all_tokens[step], all_flaw_tokens, all_label_id[step], all_token_idx, flaw_ids_lst, flaw_labels_lst]) # need to write the token
-#             print("SBPLSHP all_tokens type : ", type(all_tokens))
-#             print("SBPLSHP all_tokens Len : ", len(all_tokens))
-#             print("SBPLSHP all_tokens step: ", all_tokens[step])
-#             print("all_label_id : type : ", type(all_label_id))
-#             print("all_label_id : Len : ", len(all_label_id))
-#             print("all_label_id :  : ", all_label_id)            
-#             print("flaw_ids : type : ", type(flaw_ids))
-#             print("flaw_ids : Len : ", len(flaw_ids))
-#             print("flaw_ids : : ", flaw_ids)            
-            
-#                         output_file = os.path.join(args.data_dir, "epoch"+str(epoch)+"disc_outputs.tsv")
-#             with open(output_file,"w") as csv_file:
-#                 writer = csv.writer(csv_file, delimiter='\t')
-#                 writer.writerow(["sentence", "label", "ids"])
-
+            writer.writerow([all_flaw_tokens, all_label_id[step], all_token_idx,all_tokens[step], flaw_ids_lst, flaw_labels_lst])
 if __name__ == "__main__":
     main()
 
