@@ -404,7 +404,7 @@ def main():
 
             output_model_file = os.path.join(args.output_dir, "epoch"+str(epoch)+WEIGHTS_NAME)
             output_config_file = os.path.join(args.output_dir, CONFIG_NAME)
-
+            #print("output_model_file: ", output_model_file)
             config = BertConfig(output_config_file)
             model = BertForDiscriminator(config, num_labels=num_labels)
             model.load_state_dict(torch.load(output_model_file))

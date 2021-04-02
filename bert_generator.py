@@ -244,11 +244,11 @@ def main():
         
 #         print("args max ngram length: ",args.max_seq_length)
 #         print("length of ngram_embeddings list: ",len(ngram_embeddings_lst))
-        
-        for it in ngram_embeddings_lst:
-            print("printing it:   ",len(it))
-            if len(it)!=(args.max_seq_length):
-                print("printing it: ",it)
+
+        #for it in ngram_embeddings_lst:
+            #print("printing it:   ",len(it))
+            #if len(it)!=(args.max_seq_length):
+                #print("printing it: ",it)
         #target = [[[1,2,3], [2,4,5,6]], [[1,2,3], [2,4,5,6], [2,4,6,7,8]]]
         max_cols = max([len(row) for batch in ngram_embeddings_lst for row in batch])
         #print("maximum no. of cols: ", max_cols)

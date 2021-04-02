@@ -308,7 +308,8 @@ def main():
     # examples_for_attacks = None
     # w2i, i2w, vocab_size = {}, {}, 1
     dir_path="./data/sst-2/add_1/"
-    output_file = os.path.join(dir_path, "disc_for_attacks_outputs.tsv")
+    #output_file = os.path.join(dir_path, "disc_for_attacks_outputs.tsv")
+    output_file = os.path.join(dir_path, "test.tsv")
     #print("output_file", output_file)
     flaw_ids = []
     flaw_labels = []
@@ -334,17 +335,21 @@ def main():
                                                                             embeddings=None, emb_index=None,words=None)
 
             all_token_idx = ",".join([str(id) for tok in all_token_idx for id in tok])
-            all_truth_tokens_flat = " ".join([str(id) for tok in all_truth_tokens for id in tok])
+            all_truth_tokens_flat = ' '.join([str(id) for tok in all_truth_tokens for id in tok])
 
             flaw_ids = torch.tensor([f.flaw_ids for f in features_with_flaws])
             flaw_labels = torch.tensor([f.flaw_labels for f in features_with_flaws])
 
-            all_flaw_tokens = " ".join([str(y) for x in all_flaw_tokens for y in x])
+            all_flaw_tokens = ' '.join([str(y) for x in all_flaw_tokens for y in x])
             writer = csv.writer(csv_file, delimiter='\t')
             flaw_ids_ar=flaw_ids.detach().cpu().numpy()
             flaw_ids_lst=flaw_ids.tolist()
             flaw_labels_ar=flaw_labels.detach().cpu().numpy()
             flaw_labels_lst=flaw_labels.tolist()
+            all_flaw_tokens = all_flaw_tokens.strip("''").strip("``")
+            print("all_flaw_tokens: ",all_flaw_tokens)
+            all_truth_tokens_flat = all_truth_tokens_flat.strip("''").strip("``")
+            print("all_truth_tokens_flat: ", all_truth_tokens_flat)
             #writer.writerow(["sentence-with-flaw_tokens", "label", "flaw_ids", "ground-truth-sentence","ground-truth-token_ids","Index_Ids", "flaw_labels"])
             writer.writerow([all_flaw_tokens, all_label_id[step],  all_token_idx,all_truth_tokens_flat,all_tokens[step], flaw_ids_lst, flaw_labels_lst])
 if __name__ == "__main__":

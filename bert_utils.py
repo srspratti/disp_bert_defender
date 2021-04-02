@@ -627,7 +627,7 @@ def convert_examples_to_features_flaw_attacks(examples, max_seq_length, max_ngra
             flaw_labels += [label] * len(word_pieces)
             flaw_pieces += word_pieces
 
-            print("label: ", label)
+            #print("label: ", label)
             flaw_tokens_seq.append(tok_flaw)
             if label == 1:
                 token_ids_seq.append(int(idx))
@@ -833,14 +833,16 @@ class SST2Processor(DataProcessor):
         """Creates examples for the training and dev sets."""
         examples = []
         for (i, line) in enumerate(lines):
-            # print("line :", line)
+            print("line :", line)
+            print("line[0]: ", line[0])
+            print("line[1]", line[1])
             flaw_labels = None
             if i == 0:
                 continue
             guid = "%s-%s" % (set_type, i)
             text_a = line[0]
             label = line[1]
-            if len(line) == 3: flaw_labels = line[2]
+            if len(line) > 2: flaw_labels = line[2]
             examples.append(
                 InputExample(guid=guid, text_a=text_a, text_b=None, label=label, flaw_labels=flaw_labels))
         return examples
@@ -943,7 +945,7 @@ def attack_word(tok, p, emb_dict,
 def random_attack(tok, emb_dict, p, vocab_list):
     prob = np.random.random()
     #prob = 0.14
-    print("Printing prob: ",prob)
+    #print("Printing prob: ",prob)
     # attack token with 15% probability
     if prob < 0.15:
         prob /= 0.15
@@ -954,7 +956,7 @@ def random_attack(tok, emb_dict, p, vocab_list):
         else:
             if emb_dict is not None:
                 tok_flaw = attack_word(tok, p, emb_dict, vocab_list)
-                print(tok+' '+tok_flaw)
+                #print(tok+' '+tok_flaw)
                 return 1, tok_flaw
             else:
                 return 0, tok
