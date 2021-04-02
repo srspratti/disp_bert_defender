@@ -342,11 +342,12 @@ def main():
 
     # Load a trained model and config that you have fine-tuned
     #output_model_file = os.path.join(args.output_dir, "epoch"+str(ind)+"_"+WEIGHTS_NAME)
-    output_model_file = os.path.join(args.output_dir, "epoch" + str(ind) + WEIGHTS_NAME)
-    output_config_file = os.path.join(args.output_dir, CONFIG_NAME)
-    config = BertConfig(output_config_file)
-    model = BertForClassifier(config, num_labels=num_labels)
-    model.load_state_dict(torch.load(output_model_file))
+
+    # output_model_file = os.path.join(args.output_dir, "epoch" + str(ind) + WEIGHTS_NAME)
+    # output_config_file = os.path.join(args.output_dir, CONFIG_NAME)
+    # config = BertConfig(output_config_file)
+    # model = BertForClassifier(config, num_labels=num_labels)
+    # model.load_state_dict(torch.load(output_model_file))
 
 
     if args.do_eval and (args.local_rank == -1 or torch.distributed.get_rank() == 0):
@@ -372,6 +373,19 @@ def main():
         eval_sampler = SequentialSampler(eval_data)
         eval_dataloader = DataLoader(eval_data, sampler=eval_sampler, batch_size=args.eval_batch_size)
 
+        output_model_file = os.path.join(args.output_dir, "classifier_" + WEIGHTS_NAME)
+        output_config_file = os.path.join(args.output_dir, CONFIG_NAME)
+        print("output_model_file: ", output_model_file)
+        config = BertConfig(output_config_file)
+        model = BertForClassifier(config, num_labels=num_labels)
+        model.load_state_dict(torch.load(output_model_file))
+
+        # output_config_file = os.path.join(args.output_dir, CONFIG_NAME)
+        # config = BertConfig(output_config_file)
+        # model = BertForClassifier(config, num_labels=num_labels)
+        # model.load_state_dict(torch.load(output_model_file))
+
+        model.to(device)
         model.eval()
         eval_loss, eval_accuracy = 0, 0
         nb_eval_steps, nb_eval_examples = 0, 0
@@ -381,14 +395,28 @@ def main():
             input_ids = input_ids.to(device)
             input_mask = input_mask.to(device)
             segment_ids = segment_ids.to(device)
-            label_ids = label_ids.to(device)            
+            label_ids = label_ids.to(device)
+
+            print("len of input_ids: ", len(input_ids))
+            print("shape of input_ids: ",input_ids.size())
+            print("len of input_mask: ", len(input_mask))
+            print("shape of input_mask: ",input_mask.size())
+            print("len of segment_ids: ", len(segment_ids))
+            print("shape of segment_ids: ",segment_ids.size())
+            print("len of label_ids: ", len(label_ids))
+            print("label_ids: ", label_ids)
+            print("shape of label_ids: ",label_ids.size())
 
             with torch.no_grad():
                 tmp_eval_loss,_ = model(input_ids, segment_ids, input_mask, label_ids)
                 logits = model(input_ids, segment_ids, input_mask)
 
             logits = logits.detach().cpu().numpy()
+            label_ids = label_ids.detach().cpu().numpy()
+
+            logits = logits.to('cpu').numpy()
             label_ids = label_ids.to('cpu').numpy()
+
             tmp_eval_accuracy = accuracy(logits, label_ids)
 
             eval_loss += tmp_eval_loss.mean().item()

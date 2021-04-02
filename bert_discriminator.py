@@ -373,7 +373,7 @@ def main():
         all_flaw_ids = torch.tensor([f.flaw_ids for f in eval_features], dtype=torch.long)
         all_label_id = torch.tensor([f.label_id for f in eval_features], dtype=torch.long)
         all_chunks = torch.tensor([f.chunks for f in eval_features], dtype=torch.long)
-        print("flaw ids in eval_features: ", all_flaw_ids)
+        #print("flaw ids in eval_features: ", all_flaw_ids)
 
         eval_data = TensorDataset(all_token_ids, all_input_ids, all_input_mask, all_flaw_ids, all_flaw_labels, all_label_id, all_chunks)
 
@@ -415,7 +415,7 @@ def main():
                 flaw_labels = flaw_labels.to(device)
                 flaw_ids = flaw_ids.to(device)
 
-                print("flaw ids in eval_dataloader: ", flaw_ids)
+                #print("flaw ids in eval_dataloader: ", flaw_ids)
 
                 with torch.no_grad():
                     tmp_eval_loss,s = model(input_ids, input_mask, flaw_labels)
@@ -432,10 +432,10 @@ def main():
                     
                     flaw_logits = torch.argmax(logits, dim=2)
                     
-                    print("Type of flaw_logits: ",type(flaw_logits))
-                    print("shape of flaw_logits: ",flaw_logits.size())
-                    print("Length of flaw_logits: ",len(flaw_logits))
-                    print("flaw_logits: ", flaw_logits)
+                    # print("Type of flaw_logits: ",type(flaw_logits))
+                    # print("shape of flaw_logits: ",flaw_logits.size())
+                    # print("Length of flaw_logits: ",len(flaw_logits))
+                    # print("flaw_logits: ", flaw_logits)
 
                 logits = logits.detach().cpu().numpy()
                 flaw_logits = flaw_logits.detach().cpu().numpy()
@@ -453,7 +453,7 @@ def main():
                 
                 true_logits = []
                 
-                print("length of flaw_ids: ",len(flaw_ids))
+                #print("length of flaw_ids: ",len(flaw_ids))
                 
                 for i in range(len(flaw_ids)):
                     tmp = [0] * len(flaw_logits[i])
