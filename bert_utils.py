@@ -833,9 +833,9 @@ class SST2Processor(DataProcessor):
         """Creates examples for the training and dev sets."""
         examples = []
         for (i, line) in enumerate(lines):
-            print("line :", line)
-            print("line[0]: ", line[0])
-            print("line[1]", line[1])
+            #print("line :", line)
+            #print("line[0]: ", line[0])
+            #print("line[1]", line[1])
             flaw_labels = None
             if i == 0:
                 continue

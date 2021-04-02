@@ -214,14 +214,6 @@ def main():
         logger.info("  Num steps = %d", num_train_optimization_steps)
         all_tokens = torch.tensor([f.token_ids for f in train_features], dtype=torch.long)
         all_label_id = torch.tensor([f.label_id for f in train_features], dtype=torch.long)
-#         print("type all tokens : ", type(all_tokens))
-#         print("length all tokens ", len(all_tokens[0]))
-#         print("all tokens 1st : ", all_tokens[0])
-#         print("type of all label id: ", type(all_label_id))
-#         print("length of all label : ", len(all_label_id))
-#         print("all label id 1st : ", all_label_id[0])
-#         print("all label id ::: : ", all_label_id)
-        
 
     # load embeddings sa
     if args.do_train:
@@ -467,21 +459,21 @@ def main():
                     tmp = [0] * len(flaw_logits[i])
                     
                     #print("tmp: ",tmp) # ne line
-                    print("printing i:",i)
-                    print("len of tmp: ",len(tmp))
-                    print("length of flaw_ids of i : ",len(flaw_ids[i]))
-                    print("flaw_ids[i]: ",flaw_ids[i])
+                    #print("printing i:",i)
+                    #print("len of tmp: ",len(tmp))
+                    #print("length of flaw_ids of i : ",len(flaw_ids[i]))
+                    #print("flaw_ids[i]: ",flaw_ids[i])
                     
                     for j in range(len(flaw_ids[0])):
-                        print("flaw_ids[i][j] : ",flaw_ids[i][j])
-                        print("tmp value: ", tmp)
-                        print("tmp len: ", len(tmp))
+                        #print("flaw_ids[i][j] : ",flaw_ids[i][j])
+                        #print("tmp value: ", tmp)
+                        #print("tmp len: ", len(tmp))
                         if flaw_ids[i][j] == 0: break
                         if flaw_ids[i][j] >= len(tmp): continue
                         tmp[flaw_ids[i][j]] = 1
 
                     true_logits.append(tmp)
-                    print('true_logits: ', true_logits)
+                    #print('true_logits: ', true_logits)
 
                 tmp_eval_accuracy = accuracy_2d(flaw_logits, true_logits)
                 eval_accuracy += tmp_eval_accuracy 

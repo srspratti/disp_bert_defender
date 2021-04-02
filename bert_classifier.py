@@ -98,6 +98,10 @@ def main():
                         default=3.0,
                         type=float,
                         help="Total number of training epochs to perform.")
+    parser.add_argument("--num_eval_epochs",
+                        default=3.0,
+                        type=float,
+                        help="Total number of eval epochs to perform.")
     parser.add_argument("--warmup_proportion",
                         default=0.1,
                         type=float,
@@ -337,7 +341,8 @@ def main():
 
 
     # Load a trained model and config that you have fine-tuned
-    output_model_file = os.path.join(args.output_dir, "epoch"+str(ind)+"_"+WEIGHTS_NAME)
+    #output_model_file = os.path.join(args.output_dir, "epoch"+str(ind)+"_"+WEIGHTS_NAME)
+    output_model_file = os.path.join(args.output_dir, "epoch" + str(ind) + WEIGHTS_NAME)
     output_config_file = os.path.join(args.output_dir, CONFIG_NAME)
     config = BertConfig(output_config_file)
     model = BertForClassifier(config, num_labels=num_labels)
@@ -345,12 +350,15 @@ def main():
 
 
     if args.do_eval and (args.local_rank == -1 or torch.distributed.get_rank() == 0):
+
         eval_examples = processor.get_dev_examples(args.data_dir)
         eval_features = convert_examples_to_features(
             eval_examples, label_list, args.max_seq_length, tokenizer)
+
         logger.info("***** Running evaluation *****")
         logger.info("  Num examples = %d", len(eval_examples))
         logger.info("  Batch size = %d", args.eval_batch_size)
+
         all_input_ids = torch.tensor([f.input_ids for f in eval_features], dtype=torch.long)
         all_input_mask = torch.tensor([f.input_mask for f in eval_features], dtype=torch.long)
         all_segment_ids = torch.tensor([f.segment_ids for f in eval_features], dtype=torch.long)
