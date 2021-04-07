@@ -42,6 +42,11 @@ def load_models():
         from dis_models.resnet_32 import ResNetAC
         gen = ResNetGenerator(ch=opt.ngf, dim_z=opt.nz, bottom_width=opt.start_width, n_classes=opt.nclass)
         dis = ResNetAC(ch=opt.ndf, n_classes=opt.nclass, bn=True)
+    elif opt.model == "GAN2Vec_RobGAN":
+        from gen_models.Gan2vec_gen import Generator
+        from dis_models.Gan2vec_dis import Discriminator
+        gen = Generator(64, 64)
+        dis = Discriminator(64)
     elif opt.model == "resnet_64":
         from gen_models.resnet_64 import ResNetGenerator
         from dis_models.resnet_64 import ResNetAC
