@@ -236,7 +236,8 @@ def main():
         logger.info("Loading word embeddings ...in Gensim format ")
         #encoder = FastText.load_fasttext_format(args.word_embedding_file)
         # TODO : Convert the text into the Gensim format
-        text_new = ' '.join(text).split()
+        #text_new = [ tk for txt in text for tk in txt]
+        text_new = [txt.split() for txt in text]
         print("text_new : ", text_new)
         print("text_new type : ", type(text_new))
         print("text_new len : ", len(text_new))
@@ -253,6 +254,7 @@ def main():
         # print("text len : ", len(text))
         #encoder = FastText(all_sentences, min_count=1)
         #encoder = FastText(text, min_count=1)
+        encoder = FastText(text_new, min_count=1)
         return text, encoder
 
     def get_lines(start, end):
@@ -261,21 +263,37 @@ def main():
         seq_lens = []
         sentences = []
         longest = 0
-        for l in text[start:end]:
+        print("printing start: ", start)
+        print("printing end: ", end)
+        text_batch = []
+        for i in range((end-start)):
+            text_batch.append(text[i])
+        print("Printing Text Batch: ", text_batch)
+        for l in text_batch :
             print("l in : ",l)
             seq_lens.append(len(l))
-            longest = len(l) if len(l) > longest else longest
+            #longest = len(l) if len(l) > longest else longest
+            longest = args.max_seq_length
 
             sentence = []
             print("encoder : ", encoder)
-            for w in l:
-                print("w in : ", w)
-                sentence.append(torch.tensor(encoder.wv[w]))
-
+            for txt in l.split():
+                print(" txt : ", txt)
+                print("encoder.wv[txt]) :", encoder.wv[txt])
+                print("encoder.wv[txt]) type :", type(encoder.wv[txt]))
+                print("encoder.wv[txt]) shape :", encoder.wv[txt].shape)
+                print(" txt : ", txt)
+                sentence.append(torch.tensor(encoder.wv[txt]))
+            #for w in l:
+            #    print("w in : ", w)
+            #     sentence.append(torch.tensor(encoder.wv[w]))
+            #print("sentence: ", sentence)
+            print("sentence type of : ", type(sentence))
             sentences.append(torch.stack(sentence).unsqueeze(0))
 
         # Pad input
         d_size = sentences[0].size(2)
+        print("sentences: ", type(sentences))
         for i in range(len(sentences)):
             sl = sentences[i].size(1)
 
@@ -296,6 +314,8 @@ def main():
             enforce_sorted=False
         )
 
+        print("packer type of : ", type(packer))
+        print("start words type of : ", type(start_words))
         return packer, start_words
 
 
@@ -330,7 +350,7 @@ def main():
         opt_d = Adam(D.parameters(), lr=0.002, betas=(0.5, 0.999))
         opt_g = Adam(G.parameters(), lr=0.002, betas=(0.5, 0.999))
 
-        for e in range(epochs):
+        for e in range(int(args.num_train_epochs)):
             i = 0
             while batch_size * i < num_samples:
                 stime = time.time()
@@ -344,6 +364,9 @@ def main():
                 fl = torch.full((bs, 1), 0.1)
 
                 real, greal = get_lines(start, end)
+
+                print("real: ", real)
+                #print("greal: ", greal)
 
                 # Train Generator as per RobGAN
                 # Train generator
