@@ -1,161 +1,395 @@
+from __future__ import absolute_import, division, print_function
+
+import argparse
+import csv
+import logging
+import os
+import random
+import sys
+#copy-test
+import numpy as np
+import pandas as pd
 import torch
 import pickle
-import os
 import time
 
 from torch import nn
 from torch.autograd import Variable
-from random import randint
+from torch.utils.data import (DataLoader, RandomSampler, SequentialSampler,
+                              TensorDataset)
+from torch.utils.data.distributed import DistributedSampler
 from torch.optim import Adam
-from gan2vec import Discriminator, Generator
-# from gan2vec_conv import ConvGenerator
 from torch.nn.utils.rnn import pack_padded_sequence
+from tqdm import tqdm, trange
+from random import randint
+from GAN2vec.src.gan2vec import Discriminator, Generator
+# from gan2vec_conv import ConvGenerator
 from gensim.models import Word2Vec
+from gensim.models import FastText
+#from gensim.models.wrappers import FastText
 
-DATA_DIR = 'data'
-# DATA_DIR = 'code/GAN2Vec/data' # For debugger
-IN_TEXT = 'cleaned_haiku.data'
-IN_W2V = 'w2v_haiku.model'
+from file_utils import PYTORCH_PRETRAINED_BERT_CACHE
+from bert_model import BertForDiscriminator, BertConfig, WEIGHTS_NAME, CONFIG_NAME
+from tokenization import BertTokenizer
+from optimization import BertAdam, warmup_linear
 
-text = encoder = None
+from bert_utils import *
+
+def main():
+    parser = argparse.ArgumentParser()
+
+    ## Required parameters
+    parser.add_argument("--sample",
+                        default=None,
+                        type=str,
+                        required=True,
+                        help="The input data dir. Should contain the .tsv files (or other data files) for the task.")
+    parser.add_argument("--data_dir",
+                        default=None,
+                        type=str,
+                        required=True,
+                        help="The input data dir. Should contain the .tsv files (or other data files) for the task.")
+    parser.add_argument("--task_name",
+                        default=None,
+                        type=str,
+                        required=True,
+                        help="The name of the task to train.")
+    parser.add_argument("--output_dir",
+                        default=None,
+                        type=str,
+                        required=True,
+                        help="The output directory where the model predictions and checkpoints will be written.")
+    parser.add_argument("--word_embedding_file",
+                        default='./emb/wiki-news-300d-1M.vec',
+                        type=str,
+                        help="The input directory of word embeddings.")
+    parser.add_argument("--index_path",
+                        default='./emb/p_index.bin',
+                        type=str,
+                        help="The input directory of word embedding index.")
+    parser.add_argument("--word_embedding_info",
+                        default='./emb/vocab_info.txt',
+                        type=str,
+                        help="The input directory of word embedding info.")
+    parser.add_argument("--data_file",
+                        default='',
+                        type=str,
+                        help="The input directory of input data file.")
+
+    ## Other parameters
+    parser.add_argument("--cache_dir",
+                        default="",
+                        type=str,
+                        help="Where do you want to store the pre-trained models downloaded from s3")
+    parser.add_argument("--max_seq_length",
+                        default=128,
+                        type=int,
+                        help="The maximum total input sequence length after WordPiece tokenization. \n"
+                             "Sequences longer than this will be truncated, and sequences shorter \n"
+                             "than this will be padded.")
+    parser.add_argument("--max_ngram_length",
+                        default=16,
+                        type=int,
+                        help="The maximum total ngram sequence")
+    parser.add_argument("--do_train",
+                        action='store_true',
+                        help="Whether to run training.")
+    parser.add_argument("--do_eval",
+                        action='store_true',
+                        help="Whether to run eval on the dev set.")
+    parser.add_argument("--train_batch_size",
+                        default=32,
+                        type=int,
+                        help="Total batch size for training.")
+    parser.add_argument("--embedding_size",
+                        default=300,
+                        type=int,
+                        help="Total batch size for embeddings.")
+    parser.add_argument("--eval_batch_size",
+                        default=8,
+                        type=int,
+                        help="Total batch size for eval.")
+    parser.add_argument("--learning_rate",
+                        default=5e-5,
+                        type=float,
+                        help="The initial learning rate for Adam.")
+    parser.add_argument("--num_train_epochs",
+                        default=3.0,
+                        type=float,
+                        help="Total number of training epochs to perform.")
+    parser.add_argument("--num_eval_epochs",
+                        default=3.0,
+                        type=float,
+                        help="Total number of eval epochs to perform.")
+    parser.add_argument("--warmup_proportion",
+                        default=0.1,
+                        type=float,
+                        help="Proportion of training to perform linear learning rate warmup for. "
+                             "E.g., 0.1 = 10%% of training.")
+    parser.add_argument("--no_cuda",
+                        action='store_true',
+                        help="Whether not to use CUDA when available")
+    parser.add_argument("--local_rank",
+                        type=int,
+                        default=-1,
+                        help="local_rank for distributed training on gpus")
+    parser.add_argument('--seed',
+                        type=int,
+                        default=42,
+                        help="random seed for initialization")
+    parser.add_argument('--gradient_accumulation_steps',
+                        type=int,
+                        default=1,
+                        help="Number of updates steps to accumulate before performing a backward/update pass.")
+    parser.add_argument('--fp16',
+                        action='store_true',
+                        help="Whether to use 16-bit float precision instead of 32-bit")
+    parser.add_argument('--single',
+                        action='store_true',
+                        help="Whether only evaluate a single epoch")
+    parser.add_argument('--loss_scale',
+                        type=float, default=0,
+                        help="Loss scaling to improve fp16 numeric stability. Only used when fp16 set to True.\n"
+                             "0 (default value): dynamic loss scaling.\n"
+                             "Positive power of 2: static loss scaling value.\n")
+    parser.add_argument('--server_ip', type=str, default='', help="Can be used for distant debugging.")
+    parser.add_argument('--server_port', type=str, default='', help="Can be used for distant debugging.")
+    args = parser.parse_args()
+
+    # Parameters directly assignment in the code
+    #DATA_DIR = 'data'
+    DATA_DIR = './data/sst-2/train.tsv' # For debugger
+    IN_TEXT = 'cleaned_haiku.data'
+    IN_W2V = 'w2v_haiku.model'
+
+    text = encoder = None
+    print("args.num_train_epochs  :", args.num_train_epochs )
+
+    def _create_examples(lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for (i, line) in enumerate(lines):
+            #print("line :", line)
+            #print("line[0]: ", line[0])
+            #print("line[1]", line[1])
+            flaw_labels = None
+            if i == 0:
+                continue
+            guid = "%s-%s" % (set_type, i)
+            text_a = line[0]
+            label = line[1]
+            if len(line) > 2: flaw_labels = line[2]
+            examples.append(
+                InputExample(guid=guid, text_a=text_a, text_b=None, label=label, flaw_labels=flaw_labels))
+        return examples
+
+    def _read_tsv(input_file, quotechar=None):
+        """Reads a tab separated value file."""
+        with open(input_file, "r") as f:
+            reader = csv.reader(f, delimiter="\t", quotechar=quotechar)
+            lines = []
+            for line in reader:
+                if sys.version_info[0] == 2:
+                    line = list(unicode(cell, 'utf-8') for cell in line)
+                lines.append(line)
+            return lines
+
+    def get_train_examples(DATA_DIR):
+        """See base class."""
+        if 'tsv' in DATA_DIR:
+            return _create_examples(_read_tsv(DATA_DIR), "train")
+        else:
+            return _create_examples(
+                _read_tsv(os.path.join(DATA_DIR, "train.tsv")), "train")
+
+    def get_text_from_train_examples(train_examples):
+        all_text_train_examples=[]
+        for example in train_examples:
+            all_text_train_examples.append(example.text_a)
+
+        return all_text_train_examples
+
+    text = None
+    encoder = None
+
+    def get_data():
+
+        train_examples = get_train_examples(args.data_dir)
+        text = get_text_from_train_examples(train_examples)
+        print("text: ", text)
+        print("text type : ", type(text))
+        print("text len : ", len(text))
+
+        # logger.info("Loading word embeddings ... ")
+        # emb_dict, emb_vec, vocab_list, emb_vocab_size = load_vectors(args.word_embedding_file)
+        # if not os.path.exists(args.index_path):
+        #
+        #     write_vocab_info(args.word_embedding_info, emb_vocab_size, vocab_list)
+        #     encoder = load_embeddings_and_save_index(range(emb_vocab_size), emb_vec, args.index_path)
+        # else:
+        #     # emb_vocab_size, vocab_list = load_vocab_info(args.word_embedding_info)
+        #     encoder = load_embedding_index(args.index_path, emb_vocab_size, num_dim=args.embedding_size)
+
+        #encoder = Word2Vec.load(os.path.join(DATA_DIR, IN_W2V))
+        #from gensim.models import FastText
+        #sentences = [["cat", "say", "meow"], ["dog", "say", "woof"]]
+        logger.info("Loading word embeddings ...in Gensim format ")
+        #encoder = FastText.load_fasttext_format(args.word_embedding_file)
+        # TODO : Convert the text into the Gensim format
+        text_new = ' '.join(text).split()
+        print("text_new : ", text_new)
+        print("text_new type : ", type(text_new))
+        print("text_new len : ", len(text_new))
+        # for ii in range(len(text)):
+        #     sentences = [x for x in text if x != ['']]
+        #     text[ii] = sentences
+        # all_sentences = []
+        # for txt in text:
+        #     all_sentences += txt
+        #sentences
+        #print("all_sentences: ", all_sentences)
+        # print("text : ", text)
+        # print("text type : ", type(text))
+        # print("text len : ", len(text))
+        #encoder = FastText(all_sentences, min_count=1)
+        #encoder = FastText(text, min_count=1)
+        return text, encoder
+
+    def get_lines(start, end):
+        text, encoder = get_data()
+
+        seq_lens = []
+        sentences = []
+        longest = 0
+        for l in text[start:end]:
+            print("l in : ",l)
+            seq_lens.append(len(l))
+            longest = len(l) if len(l) > longest else longest
+
+            sentence = []
+            print("encoder : ", encoder)
+            for w in l:
+                print("w in : ", w)
+                sentence.append(torch.tensor(encoder.wv[w]))
+
+            sentences.append(torch.stack(sentence).unsqueeze(0))
+
+        # Pad input
+        d_size = sentences[0].size(2)
+        for i in range(len(sentences)):
+            sl = sentences[i].size(1)
+
+            if sl < longest:
+                sentences[i] = torch.cat(
+                    [sentences[i], torch.zeros(1, longest - sl, d_size)],
+                    dim=1
+                )
+
+        # Need to squish sentences into [0,1] domain
+        seq = torch.cat(sentences, dim=0)
+        # seq = torch.sigmoid(seq)
+        start_words = seq[:, 0:1, :]
+        packer = pack_padded_sequence(
+            seq,
+            seq_lens,
+            batch_first=True,
+            enforce_sorted=False
+        )
+
+        return packer, start_words
 
 
-def get_data():
-    global text, encoder
-    if text:
-        return
+    def get_closest(sentences):
+        scores = []
+        wv = encoder.wv
+        for s in sentences.detach().numpy():
+            st = [
+                wv[wv.most_similar([s[i]], topn=1)[0][0]]
+                for i in range(s.shape[0])
+            ]
+            scores.append(torch.tensor(st))
 
-    with open(os.path.join(DATA_DIR, IN_TEXT), 'rb') as f:
-        text = pickle.load(f)[:256]
-    encoder = Word2Vec.load(os.path.join(DATA_DIR, IN_W2V))
-
-
-def get_lines(start, end):
-    get_data()
-
-    seq_lens = []
-    sentences = []
-    longest = 0
-    for l in text[start:end]:
-        seq_lens.append(len(l))
-        longest = len(l) if len(l) > longest else longest
-
-        sentence = []
-        for w in l:
-            sentence.append(torch.tensor(encoder.wv[w]))
-
-        sentences.append(torch.stack(sentence).unsqueeze(0))
-
-    # Pad input
-    d_size = sentences[0].size(2)
-    for i in range(len(sentences)):
-        sl = sentences[i].size(1)
-
-        if sl < longest:
-            sentences[i] = torch.cat(
-                [sentences[i], torch.zeros(1, longest - sl, d_size)],
-                dim=1
-            )
-
-    # Need to squish sentences into [0,1] domain
-    seq = torch.cat(sentences, dim=0)
-    # seq = torch.sigmoid(seq)
-    start_words = seq[:, 0:1, :]
-    packer = pack_padded_sequence(
-        seq,
-        seq_lens,
-        batch_first=True,
-        enforce_sorted=False
-    )
-
-    return packer, start_words
+        return torch.stack(scores, dim=0)
 
 
-def get_closest(sentences):
-    scores = []
-    wv = encoder.wv
-    for s in sentences.detach().numpy():
-        st = [
-            wv[wv.most_similar([s[i]], topn=1)[0][0]]
-            for i in range(s.shape[0])
-        ]
-        scores.append(torch.tensor(st))
+    torch.set_num_threads(16)
 
-    return torch.stack(scores, dim=0)
+    sample_task = args.sample.lower()
+    print("sample_task :", sample_task)
 
+    def train(epochs, batch_size=256, latent_size=256, K=1):
+        text, encoder = get_data()
+        num_samples = len(text)
 
-torch.set_num_threads(16)
+        G = Generator(64, 64)
+        D = Discriminator(64)
 
-def train(epochs, batch_size=256, latent_size=256, K=1):
-    get_data()
-    num_samples = len(text)
+        l2 = nn.MSELoss()
+        loss = nn.BCELoss()
+        loss_ce = nn.CrossEntropyLoss()
+        opt_d = Adam(D.parameters(), lr=0.002, betas=(0.5, 0.999))
+        opt_g = Adam(G.parameters(), lr=0.002, betas=(0.5, 0.999))
 
-    G = Generator(64, 64)
-    D = Discriminator(64)
+        for e in range(epochs):
+            i = 0
+            while batch_size * i < num_samples:
+                stime = time.time()
 
-    l2 = nn.MSELoss()
-    loss = nn.BCELoss()
-    loss_ce = nn.CrossEntropyLoss()
-    opt_d = Adam(D.parameters(), lr=0.002, betas=(0.5, 0.999))
-    opt_g = Adam(G.parameters(), lr=0.002, betas=(0.5, 0.999))
+                start = batch_size * i
+                end = min(batch_size * (i + 1), num_samples)
+                bs = end - start
 
-    for e in range(epochs):
-        i = 0
-        while batch_size * i < num_samples:
-            stime = time.time()
+                # Use lable smoothing
+                tl = torch.full((bs, 1), 0.9)
+                fl = torch.full((bs, 1), 0.1)
 
-            start = batch_size * i
-            end = min(batch_size * (i + 1), num_samples)
-            bs = end - start
+                real, greal = get_lines(start, end)
 
-            # Use lable smoothing
-            tl = torch.full((bs, 1), 0.9)
-            fl = torch.full((bs, 1), 0.1)
+                # Train Generator as per RobGAN
+                # Train generator
+                for _ in range(K):
+                    opt_g.zero_grad()
 
-            real, greal = get_lines(start, end)
+                    # GAN fooling ability
+                    fake = G(greal)
+                    g_loss = loss(D(fake), tl)
+                    g_loss.backward()
+                    opt_g.step()
 
-            # Train Generator as per RobGAN
-            # Train generator
-            for _ in range(K):
-                opt_g.zero_grad()
+                g_loss = g_loss.item()
 
-                # GAN fooling ability
+                # Train descriminator
+                opt_d.zero_grad()
                 fake = G(greal)
-                g_loss = loss(D(fake), tl)
-                g_loss.backward()
-                opt_g.step()
 
-            g_loss = g_loss.item()
+                r_loss = loss(D(real), tl)
+                f_loss = loss(D(fake), fl)
 
-            # Train descriminator
-            opt_d.zero_grad()
-            fake = G(greal)
+                # Adversarial attack
+                # gadv = get_adv_lines(start, end) # TODO : adversarial attacks def
 
-            r_loss = loss(D(real), tl)
-            f_loss = loss(D(fake), fl)
+                # a_loss = loss_ce(D(gadv),t1)  # TODO : defining a loss function
 
-            # Adversarial attack
-            # gadv = get_adv_lines(start, end) # TODO : adversarial attacks def
+                # r_loss.backward()
+                # f_loss.backward()
+                # d_loss = (r_loss.mean().item() + f_loss.mean().item()) / 2
 
-            # a_loss = loss_ce(D(gadv),t1)  # TODO : defining a loss function
+                # TODO : Adding up all the loses and including it in backprop
+                # d_total_loss = r_loss + f_loss + a_loss
+                # d_total_loss.backward()
 
-            # r_loss.backward()
-            # f_loss.backward()
-            # d_loss = (r_loss.mean().item() + f_loss.mean().item()) / 2
+                opt_d.step()
 
-            # TODO : Adding up all the loses and including it in backprop
-            # d_total_loss = r_loss + f_loss + a_loss
-            # d_total_loss.backward()
+                i += 1
 
-            opt_d.step()
+            if e % 10 == 0:
+                torch.save(G, 'generator.model')
+        torch.save(G, 'generator.model')
 
-            i += 1
-
-        if e % 10 == 0:
-            torch.save(G, 'generator.model')
-
-    torch.save(G, 'generator.model')
-
+    if sample_task == 'developing':
+        train(1000, batch_size=256)
 
 if __name__ == '__main__':
-    train(1000, batch_size=256)
+    main()
+    #get_sample_data()
+    #train(1000, batch_size=256)

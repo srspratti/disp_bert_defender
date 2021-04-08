@@ -26,7 +26,12 @@ def get_data():
 
     with open(os.path.join(DATA_DIR, IN_TEXT), 'rb') as f:
         text = pickle.load(f)[:256]
+
     encoder = Word2Vec.load(os.path.join(DATA_DIR, IN_W2V))
+    from gensim.models import FastText
+    >> > sentences = [["cat", "say", "meow"], ["dog", "say", "woof"]]
+    >> >
+    >> > model = FastText(sentences, min_count=1)
 
 
 def get_lines(start,end):
