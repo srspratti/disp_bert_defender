@@ -12,6 +12,9 @@ import pandas as pd
 import torch
 import pickle
 import time
+import pydevd_pycharm
+import gensim.models.wrappers.fasttext
+#pydevd_pycharm.settrace('localhost', port=$SERVER_PORT, stdoutToServer=True, stderrToServer=True)
 
 from torch import nn
 from torch.autograd import Variable
@@ -214,11 +217,12 @@ def main():
 
     def get_data():
 
+
         train_examples = get_train_examples(args.data_dir)
         text = get_text_from_train_examples(train_examples)
-        print("text: ", text)
-        print("text type : ", type(text))
-        print("text len : ", len(text))
+        # print("text: ", text)
+        # print("text type : ", type(text))
+        # print("text len : ", len(text))
 
         # logger.info("Loading word embeddings ... ")
         # emb_dict, emb_vec, vocab_list, emb_vocab_size = load_vectors(args.word_embedding_file)
@@ -238,6 +242,14 @@ def main():
         # TODO : Convert the text into the Gensim format
         #text_new = [ tk for txt in text for tk in txt]
         text_new = [txt.split() for txt in text]
+        # encoder = FastText(text_new, min_count=1)
+        #word_embedding_file
+        # encoder = Word2Vec.load(os.path.join('/tmp/pycharm_project_196/GAN2vec/data/w2v_haiku.model'))
+        #gensim.models.KeyedVectors.load_word2vec_format
+        #encoder = gensim.models.wrappers.fasttext.FastTextKeyedVectors.load_word2vec_format(args.word_embedding_file)
+        #encoder = gensim.models.KeyedVectors.load_word2vec_format(args.word_embedding_file)
+        encoder = Word2Vec(text_new, min_count=1)
+        print("encoder: ", encoder)
         print("text_new : ", text_new)
         print("text_new type : ", type(text_new))
         print("text_new len : ", len(text_new))
@@ -254,8 +266,10 @@ def main():
         # print("text len : ", len(text))
         #encoder = FastText(all_sentences, min_count=1)
         #encoder = FastText(text, min_count=1)
-        encoder = FastText(text_new, min_count=1)
-        return text, encoder
+        # encoder = FastText(text_new, min_count=1)
+        # #encoder = Word2Vec.load(os.path.join('/tmp/pycharm_project_196/GAN2vec/data/w2v_haiku.model'))
+        # print("encoder: ", encoder)
+        return text_new, encoder
 
     def get_lines(start, end):
         text, encoder = get_data()
@@ -272,23 +286,23 @@ def main():
         for l in text_batch :
             print("l in : ",l)
             seq_lens.append(len(l))
-            #longest = len(l) if len(l) > longest else longest
-            longest = args.max_seq_length
+            longest = len(l) if len(l) > longest else longest
+            #longest = args.max_seq_length
 
             sentence = []
             print("encoder : ", encoder)
-            for txt in l.split():
+            #for txt in l.split():
+            for txt in l:
                 print(" txt : ", txt)
                 print("encoder.wv[txt]) :", encoder.wv[txt])
                 print("encoder.wv[txt]) type :", type(encoder.wv[txt]))
                 print("encoder.wv[txt]) shape :", encoder.wv[txt].shape)
                 print(" txt : ", txt)
                 sentence.append(torch.tensor(encoder.wv[txt]))
-            #for w in l:
-            #    print("w in : ", w)
-            #     sentence.append(torch.tensor(encoder.wv[w]))
-            #print("sentence: ", sentence)
-            print("sentence type of : ", type(sentence))
+
+            #print("sentence type of : ", type(sentence))
+            print("sentences len : ", len(sentences))
+            print("sentences type : ", type(sentence))
             sentences.append(torch.stack(sentence).unsqueeze(0))
 
         # Pad input
@@ -306,6 +320,9 @@ def main():
         # Need to squish sentences into [0,1] domain
         seq = torch.cat(sentences, dim=0)
         # seq = torch.sigmoid(seq)
+        print("seq: type ", type(seq))
+        print("seq: len ", len(seq))
+        print("seq:  ", seq)
         start_words = seq[:, 0:1, :]
         packer = pack_padded_sequence(
             seq,
@@ -337,9 +354,10 @@ def main():
     sample_task = args.sample.lower()
     print("sample_task :", sample_task)
 
-    def train(epochs, batch_size=256, latent_size=256, K=1):
+    def train_old(epochs, batch_size=3, latent_size=256, K=1):
         text, encoder = get_data()
         num_samples = len(text)
+
 
         G = Generator(64, 64)
         D = Discriminator(64)
@@ -409,10 +427,91 @@ def main():
                 torch.save(G, 'generator.model')
         torch.save(G, 'generator.model')
 
+    def train(epochs, batch_size=3, latent_size=256, K=1):
+        text, encoder = get_data()
+        num_samples = len(text)
+
+        #get_data()
+        # print("text type : ", type(text))
+        # print("text: ", text)
+        # print("text len : ", len(text))
+        #num_samples = len(text)
+        # print("num_samples: ", num_samples)
+
+        G = Generator(64, 64)
+        D = Discriminator(64)
+
+        l2 = nn.MSELoss()
+        loss = nn.BCELoss()
+        opt_d = Adam(D.parameters(), lr=0.002, betas=(0.5, 0.999))
+        opt_g = Adam(G.parameters(), lr=0.002, betas=(0.5, 0.999))
+
+        for e in range(epochs):
+            i = 0
+            while batch_size * i < num_samples:
+                stime = time.time()
+
+                start = batch_size * i
+                end = min(batch_size * (i + 1), num_samples)
+                bs = end - start
+
+                # Use lable smoothing
+                tl = torch.full((bs, 1), 0.9)
+                fl = torch.full((bs, 1), 0.1)
+
+                # Train descriminator
+                opt_d.zero_grad()
+                #real, greal = get_lines(start, end)
+                real, greal = get_lines(0, 2)
+                # print("real: ", real)
+                # print("real: type:  ", type(real))
+                # print("real: shape:  ", len(real))
+                # print("greal: ", greal)
+                # print("greal: shape : ", greal.shape)
+                # print("greal: type : ", type(greal))
+                """
+                fake = G(greal)
+                print("fake: ", fake)
+                print("fake: shape : ", fake.shape)
+                print("fake: type : ", type(fake))
+
+                r_loss = loss(D(real), tl)
+                f_loss = loss(D(fake), fl)
+
+                r_loss.backward()
+                f_loss.backward()
+                d_loss = (r_loss.mean().item() + f_loss.mean().item()) / 2
+                opt_d.step()
+
+                # Train generator
+                for _ in range(K):
+                    opt_g.zero_grad()
+
+                    # GAN fooling ability
+                    fake = G(greal)
+                    g_loss = loss(D(fake), tl)
+                    g_loss.backward()
+                    opt_g.step()
+
+                g_loss = g_loss.item()
+
+                print(
+                    '[%d] D Loss: %0.3f  G Loss %0.3f  (%0.1fs)' %
+                    (e, d_loss, g_loss, time.time() - stime)
+                )
+
+                i += 1
+            """
+            if e % 10 == 0:
+                torch.save(G, 'generator.model')
+        torch.save(D, 'Discriminator.model')
+        torch.save(G, 'generator.model')
+
     if sample_task == 'developing':
-        train(1000, batch_size=256)
+        train(2, batch_size=3)
 
 if __name__ == '__main__':
     main()
     #get_sample_data()
     #train(1000, batch_size=256)
+    #train(2, batch_size=5)
