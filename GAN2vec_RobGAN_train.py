@@ -219,9 +219,9 @@ def main():
 
         train_examples = get_train_examples(args.data_dir)
         text = get_text_from_train_examples(train_examples)
-        print("text: ", text)
-        print("text type : ", type(text))
-        print("text len : ", len(text))
+        #print("text: ", text)
+        #print("text type : ", type(text))
+        #print("text len : ", len(text))
 
         # logger.info("Loading word embeddings ... ")
         # emb_dict, emb_vec, vocab_list, emb_vocab_size = load_vectors(args.word_embedding_file)
@@ -278,21 +278,21 @@ def main():
         seq_lens = []
         sentences = []
         longest = 0
-        print("printing start: ", start)
-        print("printing end: ", end)
+        #print("printing start: ", start)
+        #print("printing end: ", end)
         text_batch = []
         for i in range((end-start)):
             text_batch.append(text[i])
-        print("Printing Text Batch: ", text_batch)
-        print("Printing Text Batch: len ", len(text_batch))
+        #print("Printing Text Batch: ", text_batch)
+        #print("Printing Text Batch: len ", len(text_batch))
         for l in text_batch :
-            print("l in : ",l)
+            #print("l in : ",l)
             seq_lens.append(len(l))
             longest = len(l) if len(l) > longest else longest
             #longest = args.max_seq_length
 
             sentence = []
-            print("encoder : ", encoder)
+            #print("encoder : ", encoder)
             #for txt in l.split():
             for txt in l:
                 #print(" txt : ", txt)
@@ -300,17 +300,17 @@ def main():
                 #print("encoder.wv[txt]) type :", type(encoder.wv[txt]))
                 #print("encoder.wv[txt]) shape :", encoder.wv[txt].shape)
                 sentence.append(torch.tensor(encoder.wv[txt]))
-                print(" sentence len : ", len(sentence))
-                print(" sentence type : ", type(sentence))
+                #print(" sentence len : ", len(sentence))
+                #print(" sentence type : ", type(sentence))
 
             #print("sentence type of : ", type(sentence))
-            print("sentences len : ", len(sentences))
-            print("sentences type : ", type(sentence))
+            #print("sentences len : ", len(sentences))
+            #print("sentences type : ", type(sentence))
             sentences.append(torch.stack(sentence).unsqueeze(0))
 
         # Pad input
         d_size = sentences[0].size(2)
-        print("sentences: ", type(sentences))
+        #print("sentences: ", type(sentences))
         for i in range(len(sentences)):
             sl = sentences[i].size(1)
 
@@ -323,10 +323,10 @@ def main():
         # Need to squish sentences into [0,1] domain
         seq = torch.cat(sentences, dim=0)
         # seq = torch.sigmoid(seq)
-        print("seq: type ", type(seq))
-        print("seq: len ", len(seq))
+        #print("seq: type ", type(seq))
+        #print("seq: len ", len(seq))
         #print("seq:  ", seq)
-        print("seq:  shape ", seq.shape)
+        #print("seq:  shape ", seq.shape)
         start_words = seq[:, 0:1, :]
         packer = pack_padded_sequence(
             seq,
@@ -337,10 +337,10 @@ def main():
 
         # print("packer type of : ", type(packer))
         # print("start words type of : ", type(start_words))
-        print("packer type of : ", type(packer))
+        #print("packer type of : ", type(packer))
         #print("packer type of : shape ", packer.shape)
-        print("start words type of : ", type(start_words))
-        print("start words type of : shape ", start_words.shape)
+        #print("start words type of : ", type(start_words))
+        #print("start words type of : shape ", start_words.shape)
         return packer, start_words
 
 
@@ -505,7 +505,7 @@ def main():
                 torch.save(G, 'generator.model')
         torch.save(G, 'generator.model')
 
-    def train(epochs, batch_size=3, latent_size=256, K=1):
+    def train(epochs, batch_size=256, latent_size=256, K=1):
         text, encoder = get_data()
         num_samples = len(text)
 
@@ -524,9 +524,9 @@ def main():
         opt_d = Adam(D.parameters(), lr=0.002, betas=(0.5, 0.999))
         opt_g = Adam(G.parameters(), lr=0.002, betas=(0.5, 0.999))
         
-        print("batch: ", batch_size)
-        print("num of samples: ", num_samples)
-        print("num of epochs: ", epochs)
+        #print("batch: ", batch_size)
+        #print("num of samples: ", num_samples)
+        #print("num of epochs: ", epochs)
         for e in range(epochs):
             i = 0
             while batch_size * i < num_samples:
@@ -536,9 +536,9 @@ def main():
                 end = min(batch_size * (i + 1), num_samples)
                 bs = end - start
 
-                print("start: ", start)
-                print("end: ", end)
-                print("bs: ", bs)
+                # print("start: ", start)
+                # print("end: ", end)
+                # print("bs: ", bs)
 
                 # Use lable smoothing
                 tl = torch.full((bs, 1), 0.9)
@@ -549,23 +549,23 @@ def main():
                 #real, greal = get_lines(start, end)
                 #real, greal = get_lines(0, 2)
                 real, greal = get_lines(start, end, text, encoder)
-                print("real: ", real)
-                print("real: type:  ", type(real))
-                print("real: shape:  ", len(real))
-                print("greal: ", greal)
-                print("greal: shape : ", greal.shape)
-                print("greal: type : ", type(greal))
+                # print("real: ", real)
+                # print("real: type:  ", type(real))
+                # print("real: shape:  ", len(real))
+                # print("greal: ", greal)
+                # print("greal: shape : ", greal.shape)
+                # print("greal: type : ", type(greal))
                 
                 fake = G(greal)
-                print("fake: ", fake)
-                print("fake: shape : ", fake.shape)
-                print("fake: type : ", type(fake))
+                # print("fake: ", fake)
+                # print("fake: shape : ", fake.shape)
+                # print("fake: type : ", type(fake))
 
-                print("D(real): ", D(real))
-                print("t1 : ", tl)
-                print("t1 : shape ", tl.shape)
-                print("f1 : ", fl)
-                print("f1 : shape ", fl.shape)
+                # print("D(real): ", D(real))
+                # print("t1 : ", tl)
+                # print("t1 : shape ", tl.shape)
+                # print("f1 : ", fl)
+                # print("f1 : shape ", fl.shape)
                 r_loss = loss(D(real), tl)
                 f_loss = loss(D(fake), fl)
 
@@ -599,7 +599,7 @@ def main():
         torch.save(G, 'generator.model')
 
     if sample_task == 'developing':
-        train(2, batch_size=3)
+        train(100, batch_size=256)
 
 if __name__ == '__main__':
     main()
