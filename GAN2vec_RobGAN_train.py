@@ -34,6 +34,8 @@ from file_utils import PYTORCH_PRETRAINED_BERT_CACHE
 from bert_model import BertForDiscriminator, BertConfig, WEIGHTS_NAME, CONFIG_NAME
 from tokenization import BertTokenizer
 from optimization import BertAdam, warmup_linear
+from Gan2vec_RobGAN_utils.defenses.scRNN.model import ScRNN
+from Gan2vec_RobGAN_utils.biLstm import BiLSTM
 
 from bert_utils import *
 
@@ -467,7 +469,8 @@ def main():
         #print("seq: len ", len(seq))
         #print("seq:  ", seq)
         #print("seq:  shape ", seq.shape)
-        start_words = seq[:, 0:1, :]
+        #start_words = seq[:, 0:1, :]
+        start_words = seq[:,seq_lens, :]
         packer = pack_padded_sequence(
             seq,
             seq_lens,
@@ -682,8 +685,9 @@ def main():
         G = Generator(64, 64)
         D = Discriminator(64)
 
-        #G =
-        D = BertForDiscriminator
+        #G = BiLSTM
+        #D = BertForDiscriminator
+        #D = ScRNN
 
         l2 = nn.MSELoss()
         loss = nn.BCELoss()
