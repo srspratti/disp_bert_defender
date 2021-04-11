@@ -2,6 +2,7 @@ import torch
 
 from torch import nn
 from torch.autograd import Variable
+from bert_model import BertForDiscriminator, BertConfig, WEIGHTS_NAME, CONFIG_NAME
 
 class Generator(nn.Module):
     def __init__(self, latent_size, out_size, max_len=20, min_len=3, num_layers=1):
@@ -25,7 +26,7 @@ class Generator(nn.Module):
     '''
     Given batch of starter words, generate a sequence of outputs
     '''
-    def forward(self, batch, sentence_len=5):
+    def forward(self, batch, sentence_len=1):
         h_n = Variable(
             torch.zeros(
                 self.num_layers, 

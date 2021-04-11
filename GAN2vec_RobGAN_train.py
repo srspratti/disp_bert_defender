@@ -270,7 +270,7 @@ def main():
         # print("encoder: ", encoder)
         return text_new, encoder
     
-    def get_lines(start, end, text, encoder):
+    def get_lines_old(start, end, text, encoder):
         #text, encoder = get_data()
         text = text
         encoder = encoder
@@ -343,10 +343,7 @@ def main():
         #print("start words type of : shape ", start_words.shape)
         return packer, start_words
 
-
-
-
-    def get_lines_old(start, end):
+    def get_lines_old_old(start, end):
         text, encoder = get_data()
 
         seq_lens = []
@@ -413,6 +410,79 @@ def main():
         print("start words type of : shape ", start_words.shape)
         return packer, start_words
 
+    def get_lines(start, end, text, encoder):
+        #text, encoder = get_data()
+        text = text
+        encoder = encoder
+
+        seq_lens = []
+        sentences = []
+        longest = 0
+        #print("printing start: ", start)
+        #print("printing end: ", end)
+        text_batch = []
+        for i in range((end-start)):
+            text_batch.append(text[i])
+        #print("Printing Text Batch: ", text_batch)
+        #print("Printing Text Batch: len ", len(text_batch))
+        for l in text_batch :
+            #print("l in : ",l)
+            seq_lens.append(len(l))
+            #longest = len(l) if len(l) > longest else longest
+            longest = args.max_seq_length
+
+            sentence = []
+            #print("encoder : ", encoder)
+            #for txt in l.split():
+            for txt in l:
+                #print(" txt : ", txt)
+                #print("encoder.wv[txt]) :", encoder.wv[txt])
+                #print("encoder.wv[txt]) type :", type(encoder.wv[txt]))
+                #print("encoder.wv[txt]) shape :", encoder.wv[txt].shape)
+                sentence.append(torch.tensor(encoder.wv[txt]))
+                #print(" sentence len : ", len(sentence))
+                #print(" sentence type : ", type(sentence))
+
+            #print("sentence type of : ", type(sentence))
+            #print("sentences len : ", len(sentences))
+            #print("sentences type : ", type(sentence))
+            sentences.append(torch.stack(sentence).unsqueeze(0))
+
+        # Pad input
+        d_size = sentences[0].size(2)
+        #print("sentences: ", type(sentences))
+        for i in range(len(sentences)):
+            sl = sentences[i].size(1)
+
+            if sl < longest:
+                sentences[i] = torch.cat(
+                    [sentences[i], torch.zeros(1, longest - sl, d_size)],
+                    dim=1
+                )
+
+        # Need to squish sentences into [0,1] domain
+        seq = torch.cat(sentences, dim=0)
+        # seq = torch.sigmoid(seq)
+        #print("seq: type ", type(seq))
+        #print("seq: len ", len(seq))
+        #print("seq:  ", seq)
+        #print("seq:  shape ", seq.shape)
+        start_words = seq[:, 0:1, :]
+        packer = pack_padded_sequence(
+            seq,
+            seq_lens,
+            batch_first=True,
+            enforce_sorted=False
+        )
+
+        # print("packer type of : ", type(packer))
+        # print("start words type of : ", type(start_words))
+        #print("packer type of : ", type(packer))
+        #print("packer type of : shape ", packer.shape)
+        #print("start words type of : ", type(start_words))
+        #print("start words type of : shape ", start_words.shape)
+        return packer, start_words
+
 
     def get_closest(sentences):
         scores = []
@@ -432,7 +502,7 @@ def main():
     sample_task = args.sample.lower()
     print("sample_task :", sample_task)
 
-    def train_old(epochs, batch_size=3, latent_size=256, K=1):
+    def train_old_old(epochs, batch_size=3, latent_size=256, K=1):
         #text, encoder = get_data()
         num_samples = len(text)
 
@@ -505,7 +575,7 @@ def main():
                 torch.save(G, 'generator.model')
         torch.save(G, 'generator.model')
 
-    def train(epochs, batch_size=256, latent_size=256, K=1):
+    def train_old(epochs, batch_size=256, latent_size=256, K=1):
         text, encoder = get_data()
         num_samples = len(text)
 
@@ -593,6 +663,107 @@ def main():
 
                 i += 1
             
+            if e % 10 == 0:
+                torch.save(G, 'generator.model')
+        torch.save(D, 'Discriminator.model')
+        torch.save(G, 'generator.model')
+
+    def train(epochs, batch_size=256, latent_size=256, K=1):
+        text, encoder = get_data()
+        num_samples = len(text)
+
+        # get_data()
+        # print("text type : ", type(text))
+        # print("text: ", text)
+        # print("text len : ", len(text))
+        # num_samples = len(text)
+        # print("num_samples: ", num_samples)
+
+        G = Generator(64, 64)
+        D = Discriminator(64)
+
+        #G =
+        D = BertForDiscriminator
+
+        l2 = nn.MSELoss()
+        loss = nn.BCELoss()
+        opt_d = Adam(D.parameters(), lr=0.002, betas=(0.5, 0.999))
+        opt_g = Adam(G.parameters(), lr=0.002, betas=(0.5, 0.999))
+
+        # print("batch: ", batch_size)
+        # print("num of samples: ", num_samples)
+        # print("num of epochs: ", epochs)
+        max_seq_len = args.max_seq_length
+        for e in range(epochs):
+            i = 0
+            while batch_size * i < num_samples:
+                stime = time.time()
+
+                start = batch_size * i
+                end = min(batch_size * (i + 1), num_samples)
+                bs = end - start
+
+                # print("start: ", start)
+                # print("end: ", end)
+                # print("bs: ", bs)
+
+                # Use lable smoothing
+                #tl = torch.full((bs, 1), 0.9)
+                #fl = torch.full((bs, 1), 0.1)
+
+                # Label smoothing for word-level
+                tl = torch.full((bs, max_seq_len), 0.9)
+                fl = torch.full((bs, max_seq_len), 0.1)
+
+                # Train descriminator
+                opt_d.zero_grad()
+                # real, greal = get_lines(start, end)
+                # real, greal = get_lines(0, 2)
+                real, greal = get_lines(start, end, text, encoder)
+                # print("real: ", real)
+                # print("real: type:  ", type(real))
+                # print("real: shape:  ", len(real))
+                # print("greal: ", greal)
+                # print("greal: shape : ", greal.shape)
+                # print("greal: type : ", type(greal))
+
+                fake = G(greal)
+                # print("fake: ", fake)
+                # print("fake: shape : ", fake.shape)
+                # print("fake: type : ", type(fake))
+
+                # print("D(real): ", D(real))
+                # print("t1 : ", tl)
+                # print("t1 : shape ", tl.shape)
+                # print("f1 : ", fl)
+                # print("f1 : shape ", fl.shape)
+                r_loss = loss(D(real), tl)
+                f_loss = loss(D(fake), fl)
+
+                r_loss.backward()
+                f_loss.backward()
+                d_loss = (r_loss.mean().item() + f_loss.mean().item()) / 2
+                opt_d.step()
+
+                # Train generator
+                for _ in range(K):
+                    opt_g.zero_grad()
+
+                    # GAN fooling ability
+                    fake = G(greal)
+                    g_loss = loss(D(fake), tl)
+                    g_loss.backward()
+                    opt_g.step()
+
+                g_loss = g_loss.item()
+
+                print(
+                    '[%d] D Loss: %0.3f  G Loss %0.3f  (%0.1fs)' %
+                    (e, d_loss, g_loss, time.time() - stime)
+                )
+
+                i += 1
+
             if e % 10 == 0:
                 torch.save(G, 'generator.model')
         torch.save(D, 'Discriminator.model')
