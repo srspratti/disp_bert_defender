@@ -5,14 +5,19 @@ from torch.autograd import Variable
 from bert_model import BertForDiscriminator, BertConfig, WEIGHTS_NAME, CONFIG_NAME
 
 class Generator(nn.Module):
-    def __init__(self, latent_size, out_size, max_len=20, min_len=3, num_layers=1):
+    def __init__(self, latent_size, out_size, max_len=128, min_len=1, num_layers=1):
         super(Generator, self).__init__()
 
+        print("latent_size: ", latent_size)
+        print("out_size: ", out_size)
         self.out_size = out_size
         self.num_layers = num_layers
         self.MAX_LEN = max_len
         self.MIN_LEN = min_len 
+        #self.MAX_LEN = 1
+        #self.MIN_LEN = 1 
         self.one_hot_size = max_len-min_len
+        #self.one_hot_size = 0
 
         self.recurrent = nn.LSTM( 
             out_size+self.one_hot_size,
@@ -61,9 +66,10 @@ class Generator(nn.Module):
 
         h_n = torch.cat(sentence, dim=1)
         return h_n
-
-    def forward(self, batch, sentence_len=1):
-        h_n_old = Variable(
+    
+    # Current Forward method of the model
+    def forward(self, batch, sentence_len=128):
+        h_n = Variable(
             torch.zeros(
                 self.num_layers,
                 batch.size(0),
@@ -71,7 +77,7 @@ class Generator(nn.Module):
             ).normal_()
         )
 
-        c_n_old = Variable(
+        c_n = Variable(
             torch.zeros(
                 self.num_layers,
                 batch.size(0),
@@ -79,7 +85,7 @@ class Generator(nn.Module):
             )  # .normal_()
         )
 
-        h_n = Variable(
+        h_n_old = Variable(
             torch.zeros(
                 self.num_layers,
                 batch.size(0),
@@ -87,7 +93,7 @@ class Generator(nn.Module):
             ).normal_()
         )
 
-        c_n = Variable(
+        c_n_old = Variable(
             torch.zeros(
                 self.num_layers,
                 batch.size(0),
@@ -99,13 +105,39 @@ class Generator(nn.Module):
 
         # Tell the encoder how long the sentence will be
         #one_hot = torch.zeros(batch.size(0), 1, self.one_hot_size)
-        one_hot = torch.zeros(batch.size(0), 1, 1)
-        #one_hot[:, :, self.MAX_LEN - sentence_len] = 1.0
+        #self.out_size
+        one_hot = torch.zeros(batch.size(0), self.out_size, self.one_hot_size)
+        #one_hot_size
+        #out_size
+        print("one_hot_size type: ", type(self.one_hot_size))
+        print(" one_hot_size shape : ", self.one_hot_size)
+        print("out_size type: ", type(self.out_size))
+        print(" out_size shape : ", self.out_size)
+        print("h_n type: ", type(h_n))
+        print("h_n shape : ", h_n.shape)
+        print("c_n type: ", type(c_n))
+        print("c_n shape : ", c_n.shape)
+        print("batch type: ", type(batch))
+        print("batch shape : ", batch.shape)
+        #one_hot = torch.zeros(batch.size(0), 1, 1)
+        print("one_hot shape: ", one_hot.shape)
+        one_hot[:, :, self.MAX_LEN - sentence_len] = 1.0
+        print("one_hot shape: after ", one_hot.shape)
         x_n = torch.cat([one_hot, batch], dim=-1)
+        print("x_n shape : ", x_n.shape)
+
+        #one_hot = torch.zeros(batch.size(0), 1, self.one_hot_size)
+        #one_hot[:, :, self.MAX_LEN - sentence_len] = 1.0
+        
 
         sentence = [batch]
 
+        print("sentence : Type ", type(sentence))
+        print("sentence : Len ", len(sentence))
+
         for _ in range(sentence_len):
+            print("sentence_len: ", sentence_len)
+
             x_n, (h_n, c_n) = self.recurrent(x_n, (h_n, c_n))
 
             # Run output through one more linear layer w no activation
@@ -114,9 +146,10 @@ class Generator(nn.Module):
             sentence.append(x.unsqueeze(1))
 
         h_n = torch.cat(sentence, dim=1)
+        print(" h_n shape : ", h_n.shape)
         return h_n
 
-    def generate(self, batch, sentence_len=1):
+    def generate(self, batch, sentence_len=128):
         with torch.no_grad():
             return self.forward(batch, sentence_len=sentence_len)
 

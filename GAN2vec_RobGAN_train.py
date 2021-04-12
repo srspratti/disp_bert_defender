@@ -249,7 +249,7 @@ def main():
         #gensim.models.KeyedVectors.load_word2vec_format
         #encoder = gensim.models.wrappers.fasttext.FastTextKeyedVectors.load_word2vec_format(args.word_embedding_file)
         #encoder = gensim.models.KeyedVectors.load_word2vec_format(args.word_embedding_file)
-        encoder = Word2Vec(text_new, min_count=1, size = 64)
+        encoder = Word2Vec(text_new, min_count=1, size = 128)
         # print("encoder: ", encoder)
         # print("text_new : ", text_new)
         # print("text_new type : ", type(text_new))
@@ -452,7 +452,8 @@ def main():
 
         # Pad input
         d_size = sentences[0].size(2)
-        #print("sentences: ", type(sentences))
+        print("sentences: ", type(sentences))
+        print("sentences len: ", len(sentences))
         for i in range(len(sentences)):
             sl = sentences[i].size(1)
 
@@ -465,12 +466,16 @@ def main():
         # Need to squish sentences into [0,1] domain
         seq = torch.cat(sentences, dim=0)
         # seq = torch.sigmoid(seq)
-        #print("seq: type ", type(seq))
+        print("seq: type ", type(seq))
         #print("seq: len ", len(seq))
         #print("seq:  ", seq)
-        #print("seq:  shape ", seq.shape)
+        print("seq:  shape ", seq.shape)
+        print("Seq_lens: ", seq_lens)
         #start_words = seq[:, 0:1, :]
-        start_words = seq[:,seq_lens, :]
+        start_words = seq[:, :, :]
+        
+        #for idx in range(len(seq_lens)):
+        #  start_words = seq[:,0:(seq_lens[idx]-1), :]
         packer = pack_padded_sequence(
             seq,
             seq_lens,
@@ -682,15 +687,16 @@ def main():
         # num_samples = len(text)
         # print("num_samples: ", num_samples)
 
-        G = Generator(64, 64)
-        D = Discriminator(64)
+        G = Generator(128, 128)
+        D = Discriminator(128)
 
         #G = BiLSTM
         #D = BertForDiscriminator
         #D = ScRNN
 
         l2 = nn.MSELoss()
-        loss = nn.BCELoss()
+        #loss = nn.BCELoss()
+        loss = nn.CrossEntropyLoss()
         opt_d = Adam(D.parameters(), lr=0.002, betas=(0.5, 0.999))
         opt_g = Adam(G.parameters(), lr=0.002, betas=(0.5, 0.999))
 
@@ -724,23 +730,23 @@ def main():
                 # real, greal = get_lines(start, end)
                 # real, greal = get_lines(0, 2)
                 real, greal = get_lines(start, end, text, encoder)
-                # print("real: ", real)
-                # print("real: type:  ", type(real))
-                # print("real: shape:  ", len(real))
-                # print("greal: ", greal)
-                # print("greal: shape : ", greal.shape)
-                # print("greal: type : ", type(greal))
+                print("real: ", real)
+                print("real: type:  ", type(real))
+                print("real: shape:  ", len(real))
+                print("greal: ", greal)
+                print("greal: shape : ", greal.shape)
+                print("greal: type : ", type(greal))
 
                 fake = G(greal)
-                # print("fake: ", fake)
-                # print("fake: shape : ", fake.shape)
-                # print("fake: type : ", type(fake))
+                print("fake: ", fake)
+                print("fake: shape : ", fake.shape)
+                print("fake: type : ", type(fake))
 
-                # print("D(real): ", D(real))
-                # print("t1 : ", tl)
-                # print("t1 : shape ", tl.shape)
-                # print("f1 : ", fl)
-                # print("f1 : shape ", fl.shape)
+                print("D(real): ", D(real))
+                print("t1 : ", tl)
+                print("t1 : shape ", tl.shape)
+                print("f1 : ", fl)
+                print("f1 : shape ", fl.shape)
                 r_loss = loss(D(real), tl)
                 f_loss = loss(D(fake), fl)
 
