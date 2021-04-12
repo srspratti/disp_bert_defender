@@ -430,8 +430,8 @@ def main():
         for l in text_batch :
             #print("l in : ",l)
             seq_lens.append(len(l))
-            #longest = len(l) if len(l) > longest else longest
-            longest = args.max_seq_length
+            longest = len(l) if len(l) > longest else longest
+            #longest = args.max_seq_length
 
             sentence = []
             #print("encoder : ", encoder)
@@ -471,8 +471,8 @@ def main():
         #print("seq:  ", seq)
         print("seq:  shape ", seq.shape)
         print("Seq_lens: ", seq_lens)
-        #start_words = seq[:, 0:1, :]
-        start_words = seq[:, :, :]
+        start_words = seq[:, 0:1, :]
+        #start_words = seq[:, :, :]
         
         #for idx in range(len(seq_lens)):
         #  start_words = seq[:,0:(seq_lens[idx]-1), :]
@@ -695,8 +695,8 @@ def main():
         #D = ScRNN
 
         l2 = nn.MSELoss()
-        #loss = nn.BCELoss()
-        loss = nn.CrossEntropyLoss()
+        loss = nn.BCELoss()
+        #loss = nn.CrossEntropyLoss()
         opt_d = Adam(D.parameters(), lr=0.002, betas=(0.5, 0.999))
         opt_g = Adam(G.parameters(), lr=0.002, betas=(0.5, 0.999))
 
@@ -718,12 +718,12 @@ def main():
                 # print("bs: ", bs)
 
                 # Use lable smoothing
-                #tl = torch.full((bs, 1), 0.9)
-                #fl = torch.full((bs, 1), 0.1)
+                tl = torch.full((bs, 1), 0.9)
+                fl = torch.full((bs, 1), 0.1)
 
                 # Label smoothing for word-level
-                tl = torch.full((bs, max_seq_len), 0.9)
-                fl = torch.full((bs, max_seq_len), 0.1)
+                #tl = torch.full((bs, max_seq_len), 0.9)
+                #fl = torch.full((bs, max_seq_len), 0.1)
 
                 # Train descriminator
                 opt_d.zero_grad()

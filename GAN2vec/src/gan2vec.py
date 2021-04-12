@@ -5,7 +5,7 @@ from torch.autograd import Variable
 from bert_model import BertForDiscriminator, BertConfig, WEIGHTS_NAME, CONFIG_NAME
 
 class Generator(nn.Module):
-    def __init__(self, latent_size, out_size, max_len=128, min_len=1, num_layers=1):
+    def __init__(self, latent_size, out_size, max_len=20, min_len=3, num_layers=1):
         super(Generator, self).__init__()
 
         print("latent_size: ", latent_size)
@@ -68,7 +68,7 @@ class Generator(nn.Module):
         return h_n
     
     # Current Forward method of the model
-    def forward(self, batch, sentence_len=128):
+    def forward(self, batch, sentence_len=5):
         h_n = Variable(
             torch.zeros(
                 self.num_layers,
@@ -104,9 +104,9 @@ class Generator(nn.Module):
 
 
         # Tell the encoder how long the sentence will be
-        #one_hot = torch.zeros(batch.size(0), 1, self.one_hot_size)
+        one_hot = torch.zeros(batch.size(0), 1, self.one_hot_size)
         #self.out_size
-        one_hot = torch.zeros(batch.size(0), self.out_size, self.one_hot_size)
+        #one_hot = torch.zeros(batch.size(0), self.out_size, self.one_hot_size)
         #one_hot_size
         #out_size
         print("one_hot_size type: ", type(self.one_hot_size))
@@ -149,7 +149,7 @@ class Generator(nn.Module):
         print(" h_n shape : ", h_n.shape)
         return h_n
 
-    def generate(self, batch, sentence_len=128):
+    def generate(self, batch, sentence_len=5):
         with torch.no_grad():
             return self.forward(batch, sentence_len=sentence_len)
 
