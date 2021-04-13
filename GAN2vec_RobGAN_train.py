@@ -241,7 +241,7 @@ def main():
         #sentences = [["cat", "say", "meow"], ["dog", "say", "woof"]]
         logger.info("Loading word embeddings ...in Gensim format ")
         #encoder = FastText.load_fasttext_format(args.word_embedding_file)
-        # TODO : Convert the text into the Gensim format
+
         #text_new = [ tk for txt in text for tk in txt]
         text_new = [txt.split() for txt in text]
         # encoder = FastText(text_new, min_count=1)
@@ -564,15 +564,15 @@ def main():
                 f_loss = loss(D(fake), fl)
 
                 # Adversarial attack
-                # gadv = get_adv_lines(start, end) # TODO : adversarial attacks def
+                # gadv = get_adv_lines(start, end) #
 
-                # a_loss = loss_ce(D(gadv),t1)  # TODO : defining a loss function
+                # a_loss = loss_ce(D(gadv),t1)  #
 
                 # r_loss.backward()
                 # f_loss.backward()
                 # d_loss = (r_loss.mean().item() + f_loss.mean().item()) / 2
 
-                # TODO : Adding up all the loses and including it in backprop
+                #
                 # d_total_loss = r_loss + f_loss + a_loss
                 # d_total_loss.backward()
 
