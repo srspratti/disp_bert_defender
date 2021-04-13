@@ -175,6 +175,8 @@ class Discriminator(nn.Module):
             nn.Sigmoid()
         )
 
+        #self.linear_adv = nn.Linear(2 * hdim, output_dim)
+
     def forward(self, x):
         _, (_, x) = self.recurrent(x)
         x = x[-1]
@@ -182,6 +184,17 @@ class Discriminator(nn.Module):
         x = self.mbd(x)
         return self.decider(x)
 
+    """ size(inp) --> BATCH_SIZE x MAX_SEQ_LEN x EMB_DIM 
+        """
+    """
+    def forward(self, inp, lens):
+        packed_input = pack_padded_sequence(inp, lens, batch_first=True)
+        packed_output, _ = self.lstm(packed_input)
+        h, _ = pad_packed_sequence(packed_output, batch_first=True)
+        out = self.linear(h)  # out is batch_size x max_seq_len x class_size
+        out = out.transpose(dim0=1, dim1=2)
+        return out  # out is batch_size  x class_size x  max_seq_len
+    """
 
 '''
     Impliments Minibatch Discrimination to avoid same-looking output

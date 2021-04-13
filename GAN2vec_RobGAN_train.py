@@ -36,6 +36,7 @@ from tokenization import BertTokenizer
 from optimization import BertAdam, warmup_linear
 from Gan2vec_RobGAN_utils.defenses.scRNN.model import ScRNN
 from Gan2vec_RobGAN_utils.biLstm import BiLSTM
+from RobGAN.miscs.loss import loss_nll
 
 from bert_utils import *
 
@@ -676,7 +677,7 @@ def main():
         torch.save(D, 'Discriminator.model')
         torch.save(G, 'generator.model')
 
-    def train(epochs, batch_size=256, latent_size=256, K=1):
+    def train_before_robgan(epochs, batch_size=256, latent_size=256, K=1):
         text, encoder = get_data()
         num_samples = len(text)
 
@@ -776,6 +777,192 @@ def main():
 
             if e % 10 == 0:
                 torch.save(G, 'generator.model')
+        torch.save(D, 'Discriminator.model')
+        torch.save(G, 'generator.model')
+
+    def train(epochs, batch_size=256, latent_size=256, K=1):
+        text, encoder = get_data()
+        num_samples = len(text)
+
+        # get_data()
+        # print("text type : ", type(text))
+        # print("text: ", text)
+        # print("text len : ", len(text))
+        # num_samples = len(text)
+        # print("num_samples: ", num_samples)
+
+        G = Generator(128, 128)
+        D = Discriminator(128)
+
+        #G = BiLSTM
+        #D = BertForDiscriminator
+        #D = ScRNN
+
+        l2 = nn.MSELoss()
+        #loss = nn.BCELoss()
+        loss = loss_nll()
+        #loss = nn.CrossEntropyLoss()
+        opt_d = Adam(D.parameters(), lr=0.002, betas=(0.5, 0.999))
+        opt_g = Adam(G.parameters(), lr=0.002, betas=(0.5, 0.999))
+
+        # print("batch: ", batch_size)
+        # print("num of samples: ", num_samples)
+        # print("num of epochs: ", epochs)
+        max_seq_len = args.max_seq_length
+        """
+        for e in range(epochs):
+            i = 0
+            while batch_size * i < num_samples:
+                stime = time.time()
+
+                start = batch_size * i
+                end = min(batch_size * (i + 1), num_samples)
+                bs = end - start
+
+                # print("start: ", start)
+                # print("end: ", end)
+                # print("bs: ", bs)
+
+                # Use lable smoothing
+                tl = torch.full((bs, 1), 0.9)
+                fl = torch.full((bs, 1), 0.1)
+
+                # Label smoothing for word-level
+                #tl = torch.full((bs, max_seq_len), 0.9)
+                #fl = torch.full((bs, max_seq_len), 0.1)
+
+                # Train descriminator
+                opt_d.zero_grad()
+                # real, greal = get_lines(start, end)
+                # real, greal = get_lines(0, 2)
+                real, greal = get_lines(start, end, text, encoder)
+
+                print("real: ", real)
+                print("real: type:  ", type(real))
+                print("real: shape:  ", len(real))
+                print("greal: ", greal)
+                print("greal: shape : ", greal.shape)
+                print("greal: type : ", type(greal))
+
+                fake = G(greal)
+
+                print("fake: ", fake)
+                print("fake: shape : ", fake.shape)
+                print("fake: type : ", type(fake))
+
+                print("D(real): ", D(real))
+                print("t1 : ", tl)
+                print("t1 : shape ", tl.shape)
+                print("f1 : ", fl)
+                print("f1 : shape ", fl.shape)
+
+                r_loss = loss(D(real), tl)
+                f_loss = loss(D(fake), fl)
+
+                r_loss.backward()
+                f_loss.backward()
+                d_loss = (r_loss.mean().item() + f_loss.mean().item()) / 2
+                opt_d.step()
+
+                # Train generator
+                for _ in range(K):
+                    opt_g.zero_grad()
+
+                    # GAN fooling ability
+                    fake = G(greal)
+                    g_loss = loss(D(fake), tl)
+                    g_loss.backward()
+                    opt_g.step()
+
+                g_loss = g_loss.item()
+
+                print(
+                    '[%d] D Loss: %0.3f  G Loss %0.3f  (%0.1fs)' %
+                    (e, d_loss, g_loss, time.time() - stime)
+                )
+
+                i += 1
+
+            if e % 10 == 0:
+                torch.save(G, 'generator.model')
+        """
+        for e in range(epochs):
+            i = 0
+            while batch_size * i < num_samples:
+                stime = time.time()
+
+                start = batch_size * i
+                end = min(batch_size * (i + 1), num_samples)
+                bs = end - start
+
+                # Fixed labels
+                zeros = Variable(torch.FloatTensor(batch_size).fill_(0).cuda())
+                ones = Variable(torch.FloatTensor(batch_size).fill_(1).cuda())
+
+                # Use lable smoothing
+                tl = torch.full((bs, 1), 0.9)
+                fl = torch.full((bs, 1), 0.1)
+
+                real, greal = get_lines(start, end)
+
+                print("real: ", real)
+                #print("greal: ", greal)
+
+                # Train Generator as per RobGAN
+                # Train generator
+                for _ in range(K):
+                    opt_g.zero_grad()
+
+                    # GAN fooling ability
+                    fake = G(greal)
+                    d_fake_bin, d_fake_multi=D(fake) # TODO : Need to change the Discriminator to return multiple tensors
+                    #g_loss = loss(D(fake), tl)
+                    g_loss = loss(d_fake_bin, tl, d_fake_multi,zeros, lam=0.5)
+                    g_loss.backward()
+                    opt_g.step()
+
+                g_loss = g_loss.item()
+
+                # Train descriminator
+                opt_d.zero_grad()
+                fake = G(greal)
+
+                #r_loss = loss(D(real), tl)
+                #f_loss = loss(D(fake), fl)
+
+                # zeros and ones need to align with the max_seq_length
+                # TODO : Need to understand that while D(real) , should we use the actual labels ( flaw_ids)
+
+                d_real_bin, d_real_multi = D(real)
+                d_r_loss = loss(d_real_bin, tl, d_real_multi, zeros, lam=0.5)
+
+                d_fake_bin_d, d_fake_multi_d = D(fake)
+                d_f_loss = loss(d_fake_bin_d, fl, d_fake_multi_d, ones, lam=0.5)
+
+                # TODO : Or combine both d_real_bin into adversaries
+                d_real_adv_bin, d_real_adv_multi = D(real)
+                d_r_adv_loss = loss(d_real_adv_bin, tl, d_real_adv_multi, zeros, lam=0.5)
+
+                # TODO : In Case if we want to use a separate loss function for the Adv. generation
+                # Adversarial attack
+                # real_adv = get_adv_lines(start, end) # TODO : adversarial attacks def
+                # real_adv = TEXT ATTACKS
+                #d_adv_bin, d_adv_multi = D(real_adv)
+                #d_adv_loss = loss(d_adv_bin, tl, d_adv_multi, ACTUAL_FLOW_IDS, lam=0.5)
+
+                # TODO : 1. Total Discriminator Losses = Real loss + Adv Loss + Fake Loss
+                #d_loss_total =  d_r_loss + d_f_loss + d_adv_loss
+
+                                        # TODO : OR
+
+                # TODO : 2. Total Discriminator Losses = ( Real & Adv ) loss + Fake Loss
+                d_loss_total = d_r_adv_loss + d_f_loss
+
+                d_loss_total.backward()
+                opt_d.step()
+
+                i += 1
+
         torch.save(D, 'Discriminator.model')
         torch.save(G, 'generator.model')
 
