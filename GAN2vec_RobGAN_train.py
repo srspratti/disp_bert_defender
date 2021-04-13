@@ -927,28 +927,31 @@ def main():
                 opt_d.zero_grad()
                 fake = G(greal)
 
+                # or  with torch.no_grad():
+                #                 v_x_fake = gen(vz, y=v_y_fake)
+
                 #r_loss = loss(D(real), tl)
                 #f_loss = loss(D(fake), fl)
 
                 # zeros and ones need to align with the max_seq_length
                 # TODO : Need to understand that while D(real) , should we use the actual labels ( flaw_ids)
 
-                d_real_bin, d_real_multi = D(real)
-                d_r_loss = loss(d_real_bin, tl, d_real_multi, zeros, lam=0.5)
+                #d_real_bin, d_real_multi = D(real)
+                #d_r_loss = loss(d_real_bin, tl, d_real_multi, zeros, lam=0.5)
 
                 d_fake_bin_d, d_fake_multi_d = D(fake)
                 d_f_loss = loss(d_fake_bin_d, fl, d_fake_multi_d, ones, lam=0.5)
 
                 # TODO : Or combine both d_real_bin into adversaries
-                d_real_adv_bin, d_real_adv_multi = D(real)
-                d_r_adv_loss = loss(d_real_adv_bin, tl, d_real_adv_multi, zeros, lam=0.5)
+                #d_real_adv_bin, d_real_adv_multi = D(real)
+                #d_r_adv_loss = loss(d_real_adv_bin, tl, d_real_adv_multi, zeros, lam=0.5)
 
                 # TODO : In Case if we want to use a separate loss function for the Adv. generation
                 # Adversarial attack
                 # real_adv = get_adv_lines(start, end) # TODO : adversarial attacks def
-                # real_adv = TEXT ATTACKS
-                #d_adv_bin, d_adv_multi = D(real_adv)
-                #d_adv_loss = loss(d_adv_bin, tl, d_adv_multi, ACTUAL_FLOW_IDS, lam=0.5)
+                real_adv = "TEXT ATTACKS(real)"
+                d_adv_bin, d_adv_multi = D(real_adv) # TODO : to use this .....April 13th
+                d_adv_loss = loss(d_adv_bin, tl, d_adv_multi, "ACTUAL_FLOW_IDS", lam=0.5)
 
                 # TODO : 1. Total Discriminator Losses = Real loss + Adv Loss + Fake Loss
                 #d_loss_total =  d_r_loss + d_f_loss + d_adv_loss
@@ -956,7 +959,7 @@ def main():
                                         # TODO : OR
 
                 # TODO : 2. Total Discriminator Losses = ( Real & Adv ) loss + Fake Loss
-                d_loss_total = d_r_adv_loss + d_f_loss
+                d_loss_total = d_adv_loss + d_f_loss
 
                 d_loss_total.backward()
                 opt_d.step()
