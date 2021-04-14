@@ -2,6 +2,7 @@ import torch
 
 from torch import nn
 from torch.autograd import Variable
+from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 from bert_model import BertForDiscriminator, BertConfig, WEIGHTS_NAME, CONFIG_NAME
 
 class Generator(nn.Module):
@@ -169,7 +170,7 @@ class Discriminator(nn.Module):
             ), 
         )
 
-        self.mbd = MinibatchDiscrimination(hidden_size, hidden_size)
+        #self.mbd = MinibatchDiscrimination(hidden_size, hidden_size)
         self.decider = nn.Sequential(
             nn.Linear(hidden_size*2, 1),
             nn.Sigmoid()
@@ -177,12 +178,35 @@ class Discriminator(nn.Module):
 
         #self.linear_adv = nn.Linear(2 * hdim, output_dim)
 
+        # to-do : Can we have 2 deciders in nn ?
+        # TODO - 2-b : char_vocab_size , hdim and output_dim
+        char_vocab_size=""
+        hdim=""
+        output_dim=""
+        self.decider_multi = nn.sequential(
+            nn.LSTM(3*char_vocab_size, hdim, 1, batch_first=True,bidirectional=True),
+            nn.Linear(2*hdim, output_dim))
+
+
+
     def forward(self, x):
         _, (_, x) = self.recurrent(x)
         x = x[-1]
 
         x = self.mbd(x)
-        return self.decider(x)
+        #self.decider_multi.LSTM(x)
+        #return self.decider(x)
+        def get_inp_lens_from_x(x): # TODO - 3 : get inp and lens from x
+            return x
+        inp, lens = get_inp_lens_from_x(x)
+        packed_input = pack_padded_sequence(inp, lens, batch_first=True)
+        packed_output, _ = self.decider_multi.LSTM(packed_input)
+        h, _ = pad_packed_sequence(packed_output, batch_first=True)
+        out = self.decider_multi.Linear(h)  # out is batch_size x max_seq_len x class_size
+        out = out.transpose(dim0=1, dim1=2)
+        #return out  # out is batch_size  x class_size x  max_seq_len
+
+        return self.decider(x), out
 
     """ size(inp) --> BATCH_SIZE x MAX_SEQ_LEN x EMB_DIM 
         """

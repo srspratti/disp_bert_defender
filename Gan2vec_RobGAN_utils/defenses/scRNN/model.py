@@ -6,7 +6,7 @@ from allennlp.modules.elmo import Elmo
 from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 
 
-
+#ScRNN(len(utils.CHAR_VOCAB), 50, WORD_LIMIT + 1)
 class ScRNN(nn.Module):
     def __init__(self, char_vocab_size, hdim, output_dim):
         super(ScRNN, self).__init__()
