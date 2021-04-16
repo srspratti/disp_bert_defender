@@ -41,6 +41,13 @@ from RobGAN.miscs.loss import loss_nll
 
 from bert_utils import *
 
+CHAR_VOCAB = []
+CHAR_VOCAB_BG = []
+w2i = defaultdict(lambda: 0.0)
+w2i_bg = defaultdict(lambda: 0.0)
+i2w = defaultdict(lambda: "UNK")
+i2w_bg = defaultdict(lambda: "UNK")
+
 def main():
     parser = argparse.ArgumentParser()
 
@@ -178,12 +185,12 @@ def main():
     IN_TEXT = 'cleaned_haiku.data'
     IN_W2V = 'w2v_haiku.model'
 
-    CHAR_VOCAB = []
+    #CHAR_VOCAB = []
     CHAR_VOCAB_BG = []
-    w2i = defaultdict(lambda: 0.0)
-    w2i_bg = defaultdict(lambda: 0.0)
-    i2w = defaultdict(lambda: "UNK")
-    i2w_bg = defaultdict(lambda: "UNK")
+    #w2i = defaultdict(lambda: 0.0)
+    #w2i_bg = defaultdict(lambda: 0.0)
+    #i2w = defaultdict(lambda: "UNK")
+    #i2w_bg = defaultdict(lambda: "UNK")
 
     # to-do: think of an open vocabulary system
     WORD_LIMIT = 9999  # remaining 1 for <PAD> (this is inclusive of UNK)
@@ -297,7 +304,7 @@ def main():
         # encoder = FastText(text_new, min_count=1)
         # #encoder = Word2Vec.load(os.path.join('/tmp/pycharm_project_196/GAN2vec/data/w2v_haiku.model'))
         # print("encoder: ", encoder)
-        return text_new, encoder
+        return text_new, text, encoder
     
     def get_lines_old(start, end, text, encoder):
         #text, encoder = get_data()
@@ -566,8 +573,9 @@ def main():
         #train_examples = get_train_examples(data_dir)
         global w2i, i2w, CHAR_VOCAB
         #lines = get_lines(data_dir)
-
+        print("Text : ", text)
         for line in text:
+            print("Line: ", line)
             for word in line.split():
 
                 # add all its char in vocab
@@ -590,10 +598,10 @@ def main():
             w2i[word_list[idx][0]] = idx + 1
             i2w[idx + 1] = word_list[idx][0]
 
-        pickle.dump(dict(w2i), open("vocab/" + task_name + "w2i_" + str(WORD_LIMIT) + ".p", 'wb'))
+        pickle.dump(dict(w2i), open("./GAN2vec_RobGAN_data_oup/vocab/" + task_name + "w2i_" + str(WORD_LIMIT) + ".p", 'wb'))
         pickle.dump(dict(i2w),
-                    open("vocab/" + task_name + "i2w_" + str(WORD_LIMIT) + ".p", 'wb'))  # don't think its needed
-        pickle.dump(CHAR_VOCAB, open("vocab/" + task_name + "CHAR_VOCAB_ " + str(WORD_LIMIT) + ".p", 'wb'))
+                    open("./GAN2vec_RobGAN_data_oup/vocab/" + task_name + "i2w_" + str(WORD_LIMIT) + ".p", 'wb'))  # don't think its needed
+        pickle.dump(CHAR_VOCAB, open("./GAN2vec_RobGAN_data_oup/vocab/" + task_name + "CHAR_VOCAB_ " + str(WORD_LIMIT) + ".p", 'wb'))
         return
 
     def get_closest(sentences):
@@ -912,8 +920,12 @@ def main():
             # module1: learn a discriminator
             tokens = tokens.to('cpu').numpy()
 
+            #features_with_flaws, all_flaw_tokens, all_token_idx, all_truth_tokens = convert_examples_to_features_flaw_attacks(
+            #    tokens,args.max_seq_length, args.max_ngram_length, tokenizer, i2w,embeddings = None, emb_index = None, words = None)
+
             features_with_flaws, all_flaw_tokens, all_token_idx, all_truth_tokens = convert_examples_to_features_flaw_attacks(
-                tokens,args.max_seq_length, args.max_ngram_length, tokenizer, i2w,embeddings = None, emb_index = None, words = None)
+                tokens, args.max_seq_length, args.max_ngram_length, word_tokenize, i2w, embeddings=None, emb_index=None,
+                words=None)
 
             all_token_idx = ",".join([str(id) for tok in all_token_idx for id in tok])
             all_truth_tokens_flat = ' '.join([str(id) for tok in all_truth_tokens for id in tok])
@@ -948,9 +960,9 @@ def main():
         return real_adv, flaw_labels
 
     def train(epochs, batch_size=256, latent_size=256, K=1):
-        text, encoder = get_data()
+        text, text_orig, encoder = get_data()
         num_samples = len(text)
-        create_vocab(args.data_dir,text)
+        create_vocab(args.data_dir,text_orig)
 
         # get_data()
         # print("text type : ", type(text))
