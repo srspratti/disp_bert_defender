@@ -156,7 +156,7 @@ class Generator(nn.Module):
 
 
 class Discriminator(nn.Module):
-    def __init__(self, embed_size, hidden_size=64):
+    def __init__(self, embed_size,CHAR_VOCAB, hidden_size=64,max_seq_length=128):
         super(Discriminator, self).__init__()
 
         self.embed_size = embed_size
@@ -180,9 +180,9 @@ class Discriminator(nn.Module):
 
         # to-do : Can we have 2 deciders in nn ?
         # TODO - 2-b : char_vocab_size , hdim and output_dim
-        char_vocab_size=""
-        hdim=""
-        output_dim=""
+        char_vocab_size=CHAR_VOCAB
+        hdim=50
+        output_dim=max_seq_length
         self.decider_multi = nn.sequential(
             nn.LSTM(3*char_vocab_size, hdim, 1, batch_first=True,bidirectional=True),
             nn.Linear(2*hdim, output_dim))
@@ -197,9 +197,12 @@ class Discriminator(nn.Module):
         #self.decider_multi.LSTM(x)
         #return self.decider(x)
         def get_inp_lens_from_x(x): # TODO - 3 : get inp and lens from x
-            return x
+            ins, len = pad_packed_sequence(packed_output, batch_first=True)
+            return ins, len
         inp, lens = get_inp_lens_from_x(x)
         packed_input = pack_padded_sequence(inp, lens, batch_first=True)
+        # TODO : to-check : whether the below statement is true or not ? If true , we can directly use 'x' as packed_input into the LSTM layer
+        # packed_input = x
         packed_output, _ = self.decider_multi.LSTM(packed_input)
         h, _ = pad_packed_sequence(packed_output, batch_first=True)
         out = self.decider_multi.Linear(h)  # out is batch_size x max_seq_len x class_size
@@ -207,6 +210,16 @@ class Discriminator(nn.Module):
         #return out  # out is batch_size  x class_size x  max_seq_len
 
         return self.decider(x), out
+
+        # out value here should be equal to Bert Discriminator logits in loss, logits = model(flaw_ids, flaw_mask, flaw_labels)
+
+        # Another Approach for the Discriminator ( inspired from the bert Discriminator )
+        #self.bert = BertModel(config)
+        #self.dropout = nn.Dropout(config.hidden_dropout_prob)
+        #self.discriminator = nn.Linear(config.hidden_size, 2)
+        #self.loss_fct = CrossEntropyLoss()
+        #self.apply(self.init_bert_weights)
+
 
     """ size(inp) --> BATCH_SIZE x MAX_SEQ_LEN x EMB_DIM 
         """

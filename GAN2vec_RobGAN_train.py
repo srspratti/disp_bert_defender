@@ -29,6 +29,7 @@ from GAN2vec.src.gan2vec import Discriminator, Generator
 from gensim.models import Word2Vec
 from gensim.models import FastText
 #from gensim.models.wrappers import FastText
+from collections import defaultdict
 
 from file_utils import PYTORCH_PRETRAINED_BERT_CACHE
 from bert_model import BertForDiscriminator, BertConfig, WEIGHTS_NAME, CONFIG_NAME
@@ -166,6 +167,21 @@ def main():
     DATA_DIR = './data/sst-2/train.tsv' # For debugger
     IN_TEXT = 'cleaned_haiku.data'
     IN_W2V = 'w2v_haiku.model'
+
+    CHAR_VOCAB = []
+    CHAR_VOCAB_BG = []
+    w2i = defaultdict(lambda: 0.0)
+    w2i_bg = defaultdict(lambda: 0.0)
+    i2w = defaultdict(lambda: "UNK")
+    i2w_bg = defaultdict(lambda: "UNK")
+
+    # to-do: think of an open vocabulary system
+    WORD_LIMIT = 9999  # remaining 1 for <PAD> (this is inclusive of UNK)
+    task_name = ""
+    TARGET_PAD_IDX = -1
+    INPUT_PAD_IDX = 0
+
+    keyboard_mappings = None
 
     text = encoder = None
     print("args.num_train_epochs  :", args.num_train_epochs )
@@ -492,6 +508,40 @@ def main():
         #print("start words type of : shape ", start_words.shape)
         return packer, start_words
 
+    def create_vocab(data_dir,text, background_train=False, cv_path=""):
+
+        #train_examples = get_train_examples(data_dir)
+        global w2i, i2w, CHAR_VOCAB
+        #lines = get_lines(data_dir)
+
+        for line in text:
+            for word in line.split():
+
+                # add all its char in vocab
+                for char in word:
+                    if char not in CHAR_VOCAB:
+                        CHAR_VOCAB.append(char)
+
+                w2i[word] += 1.0
+
+        if background_train:
+            CHAR_VOCAB = pickle.load(open(cv_path, 'rb'))
+        word_list = sorted(w2i.items(), key=lambda x: x[1], reverse=True)
+        word_list = word_list[:WORD_LIMIT]  # only need top few words
+
+        # remaining words are UNKs ... sorry!
+        w2i = defaultdict(lambda: WORD_LIMIT)  # default id is UNK ID
+        w2i['<PAD>'] = INPUT_PAD_IDX  # INPUT_PAD_IDX is 0
+        i2w[INPUT_PAD_IDX] = '<PAD>'
+        for idx in range(WORD_LIMIT - 1):
+            w2i[word_list[idx][0]] = idx + 1
+            i2w[idx + 1] = word_list[idx][0]
+
+        pickle.dump(dict(w2i), open("vocab/" + task_name + "w2i_" + str(WORD_LIMIT) + ".p", 'wb'))
+        pickle.dump(dict(i2w),
+                    open("vocab/" + task_name + "i2w_" + str(WORD_LIMIT) + ".p", 'wb'))  # don't think its needed
+        pickle.dump(CHAR_VOCAB, open("vocab/" + task_name + "CHAR_VOCAB_ " + str(WORD_LIMIT) + ".p", 'wb'))
+        return
 
     def get_closest(sentences):
         scores = []
@@ -783,6 +833,7 @@ def main():
     def train(epochs, batch_size=256, latent_size=256, K=1):
         text, encoder = get_data()
         num_samples = len(text)
+        create_vocab(args.data_dir,text)
 
         # get_data()
         # print("text type : ", type(text))
@@ -792,7 +843,8 @@ def main():
         # print("num_samples: ", num_samples)
 
         G = Generator(128, 128)
-        D = Discriminator(128)
+        #D = Discriminator(128)
+        D = Discriminator(128, CHAR_VOCAB)
 
         #G = BiLSTM
         #D = BertForDiscriminator
@@ -949,11 +1001,94 @@ def main():
 
                 # to-do In Case if we want to use a separate loss function for the Adv. generation
                 # Adversarial attack
-                # real_adv = get_adv_lines(start, end) # TODO - 2-a : adversarial attacks def
-                real_adv = "TEXT ATTACKS(real)"
+                # TODO - 2-a : adversarial attacks def :
+
+                """
+                inputs : text_batch ( in gan2vec ) 
+                        def adversarial attacks(text_batch):
+                            # ........code here................ 
+                        
+                            text_batch + labels from train.tsv => text_a and labels 
+                        
+                            text_a and labels from train.tsv = get_train_examples(_create_examples(read_tsv)))
+                            all_tokens and all_label_ids = convert_examples_to_disc_train( text_a and labels )
+                            
+                            adversarial code inside the convert_examples_to_disc_train 
+                            train_data = TensorDataset(all_tokens, all_label_id)
+                                    if args.local_rank == -1:
+                                        train_sampler = RandomSampler(train_data)
+                                    else:
+                                        train_sampler = DistributedSampler(train_data)
+                                    train_dataloader = DataLoader(train_data, sampler=train_sampler, batch_size=args.train_batch_size)
+                            
+                            
+                            for step, batch in enumerate(tqdm(train_dataloader, desc="Iteration")):
+                                batch = tuple(t.to(device) for t in batch)
+                                tokens,_ = batch #, label_id, ngram_ids, ngram_labels, ngram_masks
+
+                                # module1: learn a discriminator
+                                tokens = tokens.to('cpu').numpy()
+                                #print("PRINTING TOKENS!!!!!!!!! ", len(tokens[0]))
+                                """
+                                """
+                                train_features = convert_examples_to_features_flaw(tokens, 
+                                                                                   args.max_seq_length, 
+                                                                                   args.max_ngram_length, 
+                                                                                   tokenizer, 
+                                                                                   i2w,
+                                                                                   emb_dict,
+                                                                                   p,
+                                                                                   vocab_list) 
+                
+                                flaw_mask = torch.tensor([f.flaw_mask for f in train_features], dtype=torch.long).to(device)     # [1, 1, 1, 1, 0,0,0,0]
+                                flaw_ids = torch.tensor([f.flaw_ids for f in train_features], dtype=torch.long).to(device)       # [12,25,37,54,0,0,0,0]
+                                flaw_labels = torch.tensor([f.flaw_labels for f in train_features], dtype=torch.long).to(device) # [0, 1, 1, 1, 0,0,0,0]
+                                """
+                                """
+                                features_with_flaws, all_flaw_tokens, all_token_idx, all_truth_tokens = convert_examples_to_features_flaw_attacks(tokens,
+                                                                            args.max_seq_length, args.max_ngram_length,tokenizer, i2w,
+                                                                            embeddings=None, emb_index=None,words=None)
+
+                                all_token_idx = ",".join([str(id) for tok in all_token_idx for id in tok])
+                                all_truth_tokens_flat = ' '.join([str(id) for tok in all_truth_tokens for id in tok])
+                    
+                                flaw_ids = torch.tensor([f.flaw_ids for f in features_with_flaws])
+                                flaw_labels = torch.tensor([f.flaw_labels for f in features_with_flaws])
+                    
+                                all_flaw_tokens = ' '.join([str(y) for x in all_flaw_tokens for y in x])
+                                
+                                flaw_ids_ar=flaw_ids.detach().cpu().numpy()
+                                flaw_ids_lst=flaw_ids.tolist()
+                                flaw_labels_ar=flaw_labels.detach().cpu().numpy()
+                                flaw_labels_lst=flaw_labels.tolist()
+                                all_flaw_tokens = all_flaw_tokens.strip("''").strip("``")
+                                #print("all_flaw_tokens: ",all_flaw_tokens)
+                                all_truth_tokens_flat = all_truth_tokens_flat.strip("''").strip("``")                   
+                                
+                                
+                                # Converting the all_flaw_tokens to real_adv:
+                                 for line in all_flaw_tokens:
+                                    line = line.lower()
+                                    Xtype = torch.FloatTensor
+                                    ytype = torch.LongTensor
+                                    
+                                    X, _ = get_line_representation(line)
+                                    tx = Variable(torch.from_numpy(np.array([X]))).type(Xtype)
+                                    SEQ_LEN = len(line.split())
+                                    ins = tx
+                                    len = SEQ_LEN   
+                                    real_adv = pack_padded_sequence(inp, lens, batch_first=True)
+                            
+                            return real_adv , flaw_ids_or_flaw_labels
+                                                
+                outputs : packed_sequence : real_adv and flaw_ids_or_flaw_labels ( to be later used in the loss functions )
+                """
+
+                real_adv, flaw_ids_or_flow_labels = "TEXT ATTACKS(real)" # flaw_ids or flaw_labels need to figure out
+                    # real_adv are packed_sequence should be similar to real
                 # TODO - 1 [test] : Need to understand whether we need *multi outputs from D() change to *multi[0]
                 d_adv_bin, d_adv_multi = D(real_adv) # to-do : to use this .....April 13th
-                d_adv_loss = loss(d_adv_bin, tl, d_adv_multi, "ACTUAL_FLOW_IDS", lam=0.5)
+                d_adv_loss = loss(d_adv_bin, tl, d_adv_multi, flaw_ids_or_flow_labels, lam=0.5)
 
                 # to-do : 1. Total Discriminator Losses = Real loss + Adv Loss + Fake Loss
                 #d_loss_total =  d_r_loss + d_f_loss + d_adv_loss
