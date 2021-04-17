@@ -186,7 +186,7 @@ def main():
     IN_W2V = 'w2v_haiku.model'
 
     #CHAR_VOCAB = []
-    CHAR_VOCAB_BG = []
+    #CHAR_VOCAB_BG = []
     #w2i = defaultdict(lambda: 0.0)
     #w2i_bg = defaultdict(lambda: 0.0)
     #i2w = defaultdict(lambda: "UNK")
@@ -573,9 +573,9 @@ def main():
         #train_examples = get_train_examples(data_dir)
         global w2i, i2w, CHAR_VOCAB
         #lines = get_lines(data_dir)
-        print("Text : ", text)
+        #print("Text : ", text)
         for line in text:
-            print("Line: ", line)
+            #print("Line: ", line)
             for word in line.split():
 
                 # add all its char in vocab
@@ -959,6 +959,9 @@ def main():
         # flaw_ids_or_flaw_labels
         return real_adv, flaw_labels
 
+    def get_loss():
+        return loss_nll, loss_nll
+
     def train(epochs, batch_size=256, latent_size=256, K=1):
         text, text_orig, encoder = get_data()
         num_samples = len(text)
@@ -970,10 +973,10 @@ def main():
         # print("text len : ", len(text))
         # num_samples = len(text)
         # print("num_samples: ", num_samples)
-
+        #print("CHAR_VOCAB", CHAR_VOCAB)
         G = Generator(128, 128)
         #D = Discriminator(128)
-        D = Discriminator(128, CHAR_VOCAB)
+        D = Discriminator(128, len(CHAR_VOCAB))
 
         #G = BiLSTM
         #D = BertForDiscriminator
@@ -981,7 +984,7 @@ def main():
 
         l2 = nn.MSELoss()
         #loss = nn.BCELoss()
-        loss = loss_nll()
+        loss = get_loss()
         #loss = nn.CrossEntropyLoss()
         opt_d = Adam(D.parameters(), lr=0.002, betas=(0.5, 0.999))
         opt_g = Adam(G.parameters(), lr=0.002, betas=(0.5, 0.999))
@@ -1007,7 +1010,7 @@ def main():
                 tl = torch.full((bs, 1), 0.9)
                 fl = torch.full((bs, 1), 0.1)
 
-                real, greal = get_lines(start, end)
+                real, greal = get_lines(start, end, text, encoder)
 
                 print("real: ", real)
                 #print("greal: ", greal)
@@ -1019,6 +1022,9 @@ def main():
 
                     # GAN fooling ability
                     fake = G(greal)
+                    print("type of fake : ", type(fake))
+                    print("Shape of fake : ", fake.shape)
+                    print("type of real :", type(real))
                     #TODO - 1[test]: Modify below line
                     d_fake_bin, d_fake_multi=D(fake) # TODO - 1 : Need to change the Discriminator to return multiple tensors
                     #g_loss = loss(D(fake), tl)

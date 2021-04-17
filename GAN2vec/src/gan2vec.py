@@ -3,6 +3,8 @@ import torch
 from torch import nn
 from torch.autograd import Variable
 from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
+from Gan2vec_RobGAN_utils.defenses.scRNN.utils import *
+
 from bert_model import BertForDiscriminator, BertConfig, WEIGHTS_NAME, CONFIG_NAME
 
 class Generator(nn.Module):
@@ -156,7 +158,7 @@ class Generator(nn.Module):
 
 
 class Discriminator(nn.Module):
-    def __init__(self, embed_size,CHAR_VOCAB, hidden_size=64,max_seq_length=128):
+    def __init__(self, embed_size,char_vocab_size, hidden_size=64,max_seq_length=128):
         super(Discriminator, self).__init__()
 
         self.embed_size = embed_size
@@ -170,42 +172,77 @@ class Discriminator(nn.Module):
             ), 
         )
 
-        #self.mbd = MinibatchDiscrimination(hidden_size, hidden_size)
+        self.mbd = MinibatchDiscrimination(hidden_size, hidden_size)
         self.decider = nn.Sequential(
             nn.Linear(hidden_size*2, 1),
             nn.Sigmoid()
         )
-
         #self.linear_adv = nn.Linear(2 * hdim, output_dim)
-
         # to-do : Can we have 2 deciders in nn ?
+        self.recurrent = nn.Sequential(
+            nn.LSTM(
+                embed_size,
+                hidden_size,
+                num_layers=3,
+                batch_first=True
+            ),
+        )
         # TODO - 2-b : char_vocab_size , hdim and output_dim
-        char_vocab_size=CHAR_VOCAB
+        #char_vocab_size=CHAR_VOCAB
+        print("char_vocab_size: ", char_vocab_size)
         hdim=50
         output_dim=max_seq_length
-        self.decider_multi = nn.sequential(
-            nn.LSTM(3*char_vocab_size, hdim, 1, batch_first=True,bidirectional=True),
-            nn.Linear(2*hdim, output_dim))
+        #self.decider_multi = nn.Sequential(
+        #    nn.LSTM(3*char_vocab_size, hdim, 1, batch_first=True,bidirectional=True),
+        #    nn.Linear(2*hdim, output_dim))
+
+        self.lstm = nn.LSTM(3*char_vocab_size, hdim, 1, batch_first=True,bidirectional=True)
+        self.linear = nn.Linear(2*hdim, output_dim)
+
+    # TODO : Convert a tensor to packed sentence
+    def cvrt_tsr_line_representation(self, packed_input):
+
+        Xtype = torch.FloatTensor
+        ytype = torch.LongTensor
+        # packed_input tensor to a line format
+        line=""
+        SEQ_LEN = len(line.split())
+        line = line.lower()
+        # TODO -mscll : Create a separate GAN2vec and RobGAN Utils
+        X, _ = get_line_representation(line)
+        tx = Variable(torch.from_numpy(np.array([X]))).type(Xtype)
+        packed_input = pack_padded_sequence(tx, [SEQ_LEN], batch_first=True)
+        return packed_input
 
 
+
+
+    def get_inp_lens_from_x(packed_output):  # TODO - 3 : get inp and lens from x
+        ins, len = pad_packed_sequence(packed_output, batch_first=True)
+        return ins, len
 
     def forward(self, x):
+        self.packed_input = x
+        #inp, lens = self.get_inp_lens_from_x(x)
+
         _, (_, x) = self.recurrent(x)
         x = x[-1]
 
         x = self.mbd(x)
         #self.decider_multi.LSTM(x)
         #return self.decider(x)
-        def get_inp_lens_from_x(x): # TODO - 3 : get inp and lens from x
-            ins, len = pad_packed_sequence(packed_output, batch_first=True)
-            return ins, len
-        inp, lens = get_inp_lens_from_x(x)
-        packed_input = pack_padded_sequence(inp, lens, batch_first=True)
+
+        #packed_input = pack_padded_sequence(inp, lens, batch_first=True)
         # TODO : to-check : whether the below statement is true or not ? If true , we can directly use 'x' as packed_input into the LSTM layer
-        # packed_input = x
-        packed_output, _ = self.decider_multi.LSTM(packed_input)
+        #packed_input = x
+        print("type of packed_input: ", type(self.packed_input))
+        print("shape of packed_input: ", self.packed_input.shape)
+        #packed_output, _ = self.decider_multi.LSTM(packed_input)
+        packed_input_line_rep = self.cvrt_tsr_line_representation(self.packed_input)
+        packed_output, _ = self.lstm(packed_input_line_rep)
         h, _ = pad_packed_sequence(packed_output, batch_first=True)
-        out = self.decider_multi.Linear(h)  # out is batch_size x max_seq_len x class_size
+        #out = self.decider_multi.Linear(h)  # out is batch_size x max_seq_len x class_size
+        out = self.linear(h)  # out is batch_size x max_seq_len x class_size
         out = out.transpose(dim0=1, dim1=2)
         #return out  # out is batch_size  x class_size x  max_seq_len
 
