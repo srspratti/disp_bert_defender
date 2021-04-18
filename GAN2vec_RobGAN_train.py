@@ -976,7 +976,7 @@ def main():
         #print("CHAR_VOCAB", CHAR_VOCAB)
         G = Generator(128, 128)
         #D = Discriminator(128)
-        D = Discriminator(128, len(CHAR_VOCAB))
+        D = Discriminator(128, len(CHAR_VOCAB), encoder)
 
         #G = BiLSTM
         #D = BertForDiscriminator
@@ -1012,7 +1012,7 @@ def main():
 
                 real, greal = get_lines(start, end, text, encoder)
 
-                print("real: ", real)
+                #print("real: ", real)
                 #print("greal: ", greal)
 
                 # Train Generator as per RobGAN
@@ -1025,6 +1025,9 @@ def main():
                     print("type of fake : ", type(fake))
                     print("Shape of fake : ", fake.shape)
                     print("type of real :", type(real))
+                    #print("Shape of real :", real.shape)
+                    print("type of greal :", type(greal))
+                    print("Shape of greal :", greal.shape)
                     #TODO - 1[test]: Modify below line
                     d_fake_bin, d_fake_multi=D(fake) # TODO - 1 : Need to change the Discriminator to return multiple tensors
                     #g_loss = loss(D(fake), tl)

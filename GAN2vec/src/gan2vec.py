@@ -29,7 +29,8 @@ class Generator(nn.Module):
             batch_first=True
         )
 
-        #recurrent = LSTM(81,81,1)
+        #recurrent = LSTM(145,145,1)
+        # recurrent = Linear(145,128)
         self.linear = nn.Linear(out_size+self.one_hot_size, out_size)
 
     '''
@@ -112,6 +113,7 @@ class Generator(nn.Module):
         #one_hot = torch.zeros(batch.size(0), self.out_size, self.one_hot_size)
         #one_hot_size
         #out_size
+
         print("one_hot_size type: ", type(self.one_hot_size))
         print(" one_hot_size shape : ", self.one_hot_size)
         print("out_size type: ", type(self.out_size))
@@ -124,6 +126,7 @@ class Generator(nn.Module):
         print("batch shape : ", batch.shape)
         #one_hot = torch.zeros(batch.size(0), 1, 1)
         print("one_hot shape: ", one_hot.shape)
+
         one_hot[:, :, self.MAX_LEN - sentence_len] = 1.0
         print("one_hot shape: after ", one_hot.shape)
         x_n = torch.cat([one_hot, batch], dim=-1)
@@ -158,10 +161,12 @@ class Generator(nn.Module):
 
 
 class Discriminator(nn.Module):
-    def __init__(self, embed_size,char_vocab_size, hidden_size=64,max_seq_length=128):
+    def __init__(self, embed_size,char_vocab_size, encoder, hidden_size=64,max_seq_length=128):
         super(Discriminator, self).__init__()
 
         self.embed_size = embed_size
+        self.encoder = encoder
+        self.max_seq_length=max_seq_length
 
         self.recurrent = nn.Sequential(
             nn.LSTM(
@@ -177,6 +182,7 @@ class Discriminator(nn.Module):
             nn.Linear(hidden_size*2, 1),
             nn.Sigmoid()
         )
+
         #self.linear_adv = nn.Linear(2 * hdim, output_dim)
         # to-do : Can we have 2 deciders in nn ?
         self.recurrent = nn.Sequential(
@@ -187,16 +193,19 @@ class Discriminator(nn.Module):
                 batch_first=True
             ),
         )
+
         # TODO - 2-b : char_vocab_size , hdim and output_dim
         #char_vocab_size=CHAR_VOCAB
         print("char_vocab_size: ", char_vocab_size)
         hdim=50
-        output_dim=max_seq_length
+        output_dim=self.max_seq_length
         #self.decider_multi = nn.Sequential(
         #    nn.LSTM(3*char_vocab_size, hdim, 1, batch_first=True,bidirectional=True),
         #    nn.Linear(2*hdim, output_dim))
 
         self.lstm = nn.LSTM(3*char_vocab_size, hdim, 1, batch_first=True,bidirectional=True)
+        #self.lstm = nn.LSTM(char_vocab_size, hdim, 1, batch_first=True, bidirectional=True)
+        #self.lstm = nn.LSTM(char_vocab_size, hdim, 1, batch_first=True, bidirectional=True)
         self.linear = nn.Linear(2*hdim, output_dim)
 
     # TODO : Convert a tensor to packed sentence
@@ -205,28 +214,49 @@ class Discriminator(nn.Module):
         Xtype = torch.FloatTensor
         ytype = torch.LongTensor
         # packed_input tensor to a line format
-        line=""
-        SEQ_LEN = len(line.split())
-        line = line.lower()
-        # TODO -mscll : Create a separate GAN2vec and RobGAN Utils
-        X, _ = get_line_representation(line)
-        tx = Variable(torch.from_numpy(np.array([X]))).type(Xtype)
+        packed_input_seq = packed_input[0].detach().numpy()
+        st = [
+            self.encoder.most_similar([self.packed_input[i]], topn=1)[0]
+            for i in range(self.packed_input.shape[0])
+        ]
+
+        st, sim = list(zip(*st))
+
+        #packed_input <=> fake which is of size [ 256, 6 , 128 ] : 256 = batch_size , 6 - sentence length , 128 - word dimension length #
+        packed_input_seq = packed_input[0].detach().numpy()
+
+        for i in range(len(packed_input[0])):
+            packed_input_seq = packed_input[i].detach().numpy()
+            print("packed_input_seq : type ", type(packed_input_seq))
+            #print("packed_input_seq : type ", packed_input_seq.)
+            for it in enumerate(packed_input_seq):
+                line = ""
+                SEQ_LEN = len(line.split())
+                #SEQ_LEN = max_
+                line = line.lower()
+                # TODO -mscll : Create a separate GAN2vec and RobGAN Utils
+                X, _ = get_line_representation(line)
+                tx = Variable(torch.from_numpy(np.array([X]))).type(Xtype)
         packed_input = pack_padded_sequence(tx, [SEQ_LEN], batch_first=True)
+
         return packed_input
-
-
-
 
     def get_inp_lens_from_x(packed_output):  # TODO - 3 : get inp and lens from x
         ins, len = pad_packed_sequence(packed_output, batch_first=True)
         return ins, len
 
     def forward(self, x):
+
+        print("x as forward input : type ", type(x))
+        print("x as forward input : Shape ", x.shape)
+        #print("x as forward input : type ", type(x))
+
         self.packed_input = x
         #inp, lens = self.get_inp_lens_from_x(x)
 
         _, (_, x) = self.recurrent(x)
         x = x[-1]
+
 
         x = self.mbd(x)
         #self.decider_multi.LSTM(x)
@@ -235,11 +265,48 @@ class Discriminator(nn.Module):
         #packed_input = pack_padded_sequence(inp, lens, batch_first=True)
         # TODO : to-check : whether the below statement is true or not ? If true , we can directly use 'x' as packed_input into the LSTM layer
         #packed_input = x
-        print("type of packed_input: ", type(self.packed_input))
-        print("shape of packed_input: ", self.packed_input.shape)
+        #print("type of packed_input: x", type(self.packed_input))
+        #print("shape of packed_input: ", self.packed_input.shape)
         #packed_output, _ = self.decider_multi.LSTM(packed_input)
-        packed_input_line_rep = self.cvrt_tsr_line_representation(self.packed_input)
-        packed_output, _ = self.lstm(packed_input_line_rep)
+
+        #packed_input_line_rep = self.cvrt_tsr_line_representation(self.packed_input)
+
+        print("packed_input type : ", type(self.packed_input))
+        print("packed_input type : ", type(self.packed_input))
+       # lens = self.packed_input[:]
+        print("packed_input : shape ", self.packed_input.shape[0])
+        print("packed_input : type of  ", type(self.packed_input[0]))
+        print("packed_input : shape of  ", self.packed_input[0].shape)
+        #print("packed_input : value element 0 ", self.packed_input[0])
+
+        self.packed_input = self.packed_input[0].detach().numpy()
+
+        print("packed_input : shape after ", self.packed_input.shape[0])
+        #print("packed_input : type of  ", type(self.packed_input[0]))
+        print("packed_input : shape of  after ", self.packed_input[0].shape)
+        # TODO : why the size here is 768 , 128 * 6 ??
+        print("packed_input : shape of  after ", self.packed_input.size)
+        #print("packed_input : shape of  after ", self.packed_input)
+
+        st = [
+            self.encoder.most_similar([self.packed_input[i]], topn=1)[0]
+            for i in range(self.packed_input.shape[0])
+        ]
+
+        st, sim = list(zip(*st))
+
+        print("st: ", st)
+
+        #self.packed_input
+        #torch.tensor_split(self.packed_input,,dim=1)
+        # TODO : Need to insert a batch_size
+        #lens = [6]*256
+        #lens = torch.tensor([6]*256)
+
+
+
+        packed_input_lstm = pack_padded_sequence(self.packed_input, lens, batch_first=True)
+        packed_output, _ = self.lstm(packed_input_lstm)
         h, _ = pad_packed_sequence(packed_output, batch_first=True)
         #out = self.decider_multi.Linear(h)  # out is batch_size x max_seq_len x class_size
         out = self.linear(h)  # out is batch_size x max_seq_len x class_size
