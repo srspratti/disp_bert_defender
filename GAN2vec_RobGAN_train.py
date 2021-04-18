@@ -1014,6 +1014,7 @@ def main():
 
                 #print("real: ", real)
                 #print("greal: ", greal)
+                #real_adv, flaw_ids_or_flow_labels = adversarial_attacks()
 
                 # Train Generator as per RobGAN
                 # Train generator

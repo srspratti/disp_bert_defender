@@ -221,35 +221,99 @@ class Discriminator(nn.Module):
             self.encoder.most_similar([self.packed_input[i]], topn=1)[0]
             for i in range(self.packed_input.shape[0])
         ]
-
         st, sim = list(zip(*st))
         """
-
         #packed_input <=> fake which is of size [ 256, 6 , 128 ] : 256 = batch_size , 6 - sentence length , 128 - word dimension length #
         #packed_input_seq = packed_input[0].detach().numpy()
         #packed_input_seq = packed_input[0].detach().tolist()
-        packed_input_lst = packed_input.detach().tolist()
+        #batch = 256
+        packed_input_lst = packed_input
+        packed_input_lst = packed_input_lst.detach().numpy()
 
-        st = None
-        st_line = None
-        batch_lines = None
+        packed_input_seq = packed_input[0].detach().numpy()
+
+        st = []
+        #st_line = []
+        batch_lines = []
+        batch_tx = []
+        BATCH_SEQ_LEN = []
+
+        #packed_input = packed_input[0].detach()
+        #packed_input = packed_input[0].detach().numpy()
+
         for i in range(len(packed_input_lst)):
             #packed_input_seq = packed_input[i].detach().numpy()
             #print("packed_input_seq : type ", type(packed_input_seq))
             #print("packed_input_seq : type ", packed_input_seq.)
 
-            st[i] = [self.encoder.most_similar([packed_input_lst[k]], topn=1)[0] for k in range(len(packed_input_lst))]
-            st_line[i] = " ".join(st[i])
+
+            # print("len(packed_input_lst : ", len(packed_input_lst))
+            # print("printing i: ", i)
+            # print("packed_input_lst type ", len(packed_input_lst[i]))
+            # print("packed_input_lst[i][0]", packed_input_lst[i][0])
+            # print("packed_input_lst[i][0] length ", len(packed_input_lst[i][0]))
+            # print("packed_input_lst[i][0] type", type(packed_input_lst[i][0]))
+
+            """
+            packed_input = packed_input[0].detach().numpy()
+            st = [
+                self.encoder.most_similar([self.packed_input[i]], topn=1)[0]
+                for i in range(self.packed_input.shape[0])
+            ]
+            st, sim = list(zip(*st))
+
+
+            #text = self.encoder.most_similar(packed_input_lst[i][0], topn=1)
+            print(" text : ", text)
+            """
+            st_line = []
+            for k in range(len(packed_input_lst[i])):
+                # print("k value: ", k)
+                # print("[packed_input_lst[i][k]] : ", len(packed_input_lst[i][k]))
+                # print("[packed_input_lst[i][k]] : type ", type(packed_input_lst[i][k]))
+                most_similar = self.encoder.most_similar([packed_input_lst[i][k]], topn=1)
+                #print("most similar: ", len(most_similar))
+                most_similar_word, sim_dist = list(zip(*most_similar))
+                st_line.append(most_similar_word[0])
+
+            #sent_len = len(packed_input_lst[i])
+            #print("sent_len : ", sent_len)
+            #st[i] = [
+            #    self.encoder.most_similar([packed_input_lst[i][k]], topn=1)[0]
+            #    for k in range(5)]
+            
+            # packed_input tensor to a line format
+            #packed_input_seq = packed_input[0].detach().numpy()
+
+            # st = [
+            #     self.encoder.most_similar([packed_input_seq[k]], topn=1)[0]
+            #     for k in range(packed_input_seq.shape[0])
+            # ]
+            # st, sim = list(zip(*st))
+
+            #print("st: ", st)
+            st_line = " ".join(st)
+            #st_line.append(st)
             batch_lines.append(st_line)
 
+        #print("batch_lines : ", type(batch_lines))
+        #print("batch_lines length : ", len(batch_lines))
+        #print("batch_lines 1st element : ", batch_lines[0])
+        #print("batch_lines 10th element : ", batch_lines[10])
         for line in batch_lines:
+            #print("line: ", line)
             SEQ_LEN = len(line.split())
             line = line.lower()
             # TODO -mscll : Create a separate GAN2vec and RobGAN Utils
             X, _ = get_line_representation(line)
+
             tx = Variable(torch.from_numpy(np.array([X]))).type(Xtype)
 
-        packed_input = pack_padded_sequence(tx, [SEQ_LEN], batch_first=True)
+            batch_tx.append(X)
+            BATCH_SEQ_LEN.append(SEQ_LEN)
+
+        #packed_input = pack_padded_sequence(tx, [SEQ_LEN], batch_first=True)
+        packed_input = pack_padded_sequence(tx, BATCH_SEQ_LEN, batch_first=True)
 
         return packed_input
 
@@ -277,9 +341,9 @@ class Discriminator(nn.Module):
         #packed_input = pack_padded_sequence(inp, lens, batch_first=True)
         # TODO : to-check : whether the below statement is true or not ? If true , we can directly use 'x' as packed_input into the LSTM layer
 
-
+        """
         #packed_input_line_rep = self.cvrt_tsr_line_representation(self.packed_input)
-
+    
         print("packed_input type : ", type(self.packed_input))
         print("packed input shape: ", self.packed_input.shape)
         packed_input_lst = self.packed_input.tolist()
@@ -290,16 +354,18 @@ class Discriminator(nn.Module):
         print("packed_input type 6 * 128 : ", type(self.packed_input))
         print("packed input shape: 6 * 128  ", self.packed_input.shape)
 
+        
         self.packed_input = self.packed_input[0].detach().numpy()
         print("packed_input type 128 : ", type(self.packed_input))
         print("packed input shape: 128  ", self.packed_input.shape)
 
-        """
+        
         print("packed_input : shape ", self.packed_input.shape[0])
         print("packed_input : type of  ", type(self.packed_input[0]))
         print("packed_input : shape of  ", self.packed_input[0].shape)
         #print("packed_input : value element 0 ", self.packed_input[0])
 
+        
         self.packed_input = self.packed_input[0].detach().numpy()
 
         print("packed_input : shape after ", self.packed_input.shape[0])
@@ -308,6 +374,13 @@ class Discriminator(nn.Module):
         # TODO : why the size here is 768 , 128 * 6 ??
         print("packed_input : shape of  after ", self.packed_input.size)
         #print("packed_input : shape of  after ", self.packed_input)
+        
+        print("packed_input[i] type : ", type([self.packed_input[0]]))
+        print("packed_input[i] length: ", len([self.packed_input[0]]))
+        #[packed_input_lst[i][k]
+        print("[packed_input_lst[i][k]  ", type(packed_input_lst[0][0]))
+        
+        self.packed_input = self.packed_input[0].detach().numpy()
 
         st = [
             self.encoder.most_similar([self.packed_input[i]], topn=1)[0]
@@ -322,12 +395,11 @@ class Discriminator(nn.Module):
         #self.packed_input
         #torch.tensor_split(self.packed_input,,dim=1)
         # TODO : Need to insert a batch_size
-        #lens = [6]*256
-        #lens = torch.tensor([6]*256)
+        #batch_len = len(packed_input_lst)
+        #lens = torch.tensor([6]*batch_len)
 
-
-
-        packed_input_lstm = pack_padded_sequence(self.packed_input, lens, batch_first=True)
+        packed_input_lstm= self.cvrt_tsr_line_representation(self.packed_input)
+        #packed_input_lstm = pack_padded_sequence(self.packed_input, lens, batch_first=True)
         packed_output, _ = self.lstm(packed_input_lstm)
         h, _ = pad_packed_sequence(packed_output, batch_first=True)
         #out = self.decider_multi.Linear(h)  # out is batch_size x max_seq_len x class_size
