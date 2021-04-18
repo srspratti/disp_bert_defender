@@ -196,7 +196,7 @@ class Discriminator(nn.Module):
 
         # TODO - 2-b : char_vocab_size , hdim and output_dim
         #char_vocab_size=CHAR_VOCAB
-        print("char_vocab_size: ", char_vocab_size)
+        #print("char_vocab_size: ", char_vocab_size)
         hdim=50
         output_dim=self.max_seq_length
         #self.decider_multi = nn.Sequential(
@@ -213,6 +213,8 @@ class Discriminator(nn.Module):
 
         Xtype = torch.FloatTensor
         ytype = torch.LongTensor
+
+        """
         # packed_input tensor to a line format
         packed_input_seq = packed_input[0].detach().numpy()
         st = [
@@ -221,22 +223,32 @@ class Discriminator(nn.Module):
         ]
 
         st, sim = list(zip(*st))
+        """
 
         #packed_input <=> fake which is of size [ 256, 6 , 128 ] : 256 = batch_size , 6 - sentence length , 128 - word dimension length #
-        packed_input_seq = packed_input[0].detach().numpy()
+        #packed_input_seq = packed_input[0].detach().numpy()
+        #packed_input_seq = packed_input[0].detach().tolist()
+        packed_input_lst = packed_input.detach().tolist()
 
-        for i in range(len(packed_input[0])):
-            packed_input_seq = packed_input[i].detach().numpy()
-            print("packed_input_seq : type ", type(packed_input_seq))
+        st = None
+        st_line = None
+        batch_lines = None
+        for i in range(len(packed_input_lst)):
+            #packed_input_seq = packed_input[i].detach().numpy()
+            #print("packed_input_seq : type ", type(packed_input_seq))
             #print("packed_input_seq : type ", packed_input_seq.)
-            for it in enumerate(packed_input_seq):
-                line = ""
-                SEQ_LEN = len(line.split())
-                #SEQ_LEN = max_
-                line = line.lower()
-                # TODO -mscll : Create a separate GAN2vec and RobGAN Utils
-                X, _ = get_line_representation(line)
-                tx = Variable(torch.from_numpy(np.array([X]))).type(Xtype)
+
+            st[i] = [self.encoder.most_similar([packed_input_lst[k]], topn=1)[0] for k in range(len(packed_input_lst))]
+            st_line[i] = " ".join(st[i])
+            batch_lines.append(st_line)
+
+        for line in batch_lines:
+            SEQ_LEN = len(line.split())
+            line = line.lower()
+            # TODO -mscll : Create a separate GAN2vec and RobGAN Utils
+            X, _ = get_line_representation(line)
+            tx = Variable(torch.from_numpy(np.array([X]))).type(Xtype)
+
         packed_input = pack_padded_sequence(tx, [SEQ_LEN], batch_first=True)
 
         return packed_input
@@ -247,8 +259,8 @@ class Discriminator(nn.Module):
 
     def forward(self, x):
 
-        print("x as forward input : type ", type(x))
-        print("x as forward input : Shape ", x.shape)
+        #print("x as forward input : type ", type(x))
+        #print("x as forward input : Shape ", x.shape)
         #print("x as forward input : type ", type(x))
 
         self.packed_input = x
@@ -264,16 +276,25 @@ class Discriminator(nn.Module):
 
         #packed_input = pack_padded_sequence(inp, lens, batch_first=True)
         # TODO : to-check : whether the below statement is true or not ? If true , we can directly use 'x' as packed_input into the LSTM layer
-        #packed_input = x
-        #print("type of packed_input: x", type(self.packed_input))
-        #print("shape of packed_input: ", self.packed_input.shape)
-        #packed_output, _ = self.decider_multi.LSTM(packed_input)
+
 
         #packed_input_line_rep = self.cvrt_tsr_line_representation(self.packed_input)
 
         print("packed_input type : ", type(self.packed_input))
-        print("packed_input type : ", type(self.packed_input))
-       # lens = self.packed_input[:]
+        print("packed input shape: ", self.packed_input.shape)
+        packed_input_lst = self.packed_input.tolist()
+        print("packed_input type : ", type(packed_input_lst))
+        #print("packed input shape: ", packed_input_lst)
+
+        self.packed_input = self.packed_input[0].detach().numpy()
+        print("packed_input type 6 * 128 : ", type(self.packed_input))
+        print("packed input shape: 6 * 128  ", self.packed_input.shape)
+
+        self.packed_input = self.packed_input[0].detach().numpy()
+        print("packed_input type 128 : ", type(self.packed_input))
+        print("packed input shape: 128  ", self.packed_input.shape)
+
+        """
         print("packed_input : shape ", self.packed_input.shape[0])
         print("packed_input : type of  ", type(self.packed_input[0]))
         print("packed_input : shape of  ", self.packed_input[0].shape)
@@ -296,6 +317,7 @@ class Discriminator(nn.Module):
         st, sim = list(zip(*st))
 
         print("st: ", st)
+        """
 
         #self.packed_input
         #torch.tensor_split(self.packed_input,,dim=1)
