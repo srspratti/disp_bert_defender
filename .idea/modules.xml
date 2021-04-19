@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/../textfooler/.idea/TextFooler.iml" filepath="$PROJECT_DIR$/../textfooler/.idea/TextFooler.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/disp_bert_defender.iml" filepath="$PROJECT_DIR$/.idea/disp_bert_defender.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../hotflip/.idea/hotflip.iml" filepath="$PROJECT_DIR$/../hotflip/.idea/hotflip.iml" />
+    </modules>
+  </component>
+</project>

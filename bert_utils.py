@@ -620,7 +620,17 @@ def convert_examples_to_features_flaw_attacks(examples, max_seq_length, max_ngra
 
             tok = i2w[tok_id]
 
-            label, tok_flaw = random_attack(tok, embeddings, emb_index, words)  # embeddings
+            # label, tok_flaw = random_attack(tok, embeddings, emb_index, words)  # embeddings
+
+            new_text, num_changed, orig_label, \
+            new_label, num_queries = random_attack(text, true_label, predictor, args.perturb_ratio, stop_words_set,
+                                                   word2idx, idx2word, cos_sim, sim_predictor=use,
+                                                   sim_score_threshold=args.sim_score_threshold,
+                                                   import_score_threshold=args.import_score_threshold,
+                                                   sim_score_window=args.sim_score_window,
+                                                   synonym_num=args.synonym_num,
+                                                   batch_size=args.batch_size)
+
             word_pieces = tokenizer.tokenize(tok_flaw)
 
             flaw_labels += [label] * len(word_pieces)
@@ -945,28 +955,113 @@ def attack_word(tok, p, emb_dict,
     index = random.choice(range(len(most_similar_word_id)))
     return vocab_list[most_similar_word_id[index]]
 
+# changed for project part of original disp
+# def random_attack(tok, emb_dict, p, vocab_list):
+#     prob = np.random.random()
+#     #prob = 0.14
+#     print("Printing prob: ",prob)
+#     # attack token with 15% probability
+#     if prob < 0.15:
+#         prob /= 0.15
+#         # 60% randomly attack token from character level
+#         if prob < 0.8:  # 0.8
+#             tok_flaw = attack_char(tok)
+#             # 40% randomly attack token from word level
+#         else:
+#             if emb_dict is not None:
+#                 tok_flaw = attack_word(tok, p, emb_dict, vocab_list)
+#                 print(tok+' '+tok_flaw)
+#                 return 1, tok_flaw
+#             else:
+#                 return 0, tok
+#         return 1, tok_flaw
+#     else:
+#         return 0, tok
 
-def random_attack(tok, emb_dict, p, vocab_list):
-    prob = np.random.random()
-    #prob = 0.14
-    print("Printing prob: ",prob)
-    # attack token with 15% probability
-    if prob < 0.15:
-        prob /= 0.15
-        # 60% randomly attack token from character level
-        if prob < 0.8:  # 0.8
-            tok_flaw = attack_char(tok)
-            # 40% randomly attack token from word level
-        else:
-            if emb_dict is not None:
-                tok_flaw = attack_word(tok, p, emb_dict, vocab_list)
-                print(tok+' '+tok_flaw)
-                return 1, tok_flaw
-            else:
-                return 0, tok
-        return 1, tok_flaw
+# this function was copied from tet fooler as part of project
+def random_attack(text_ls, true_label, predictor, perturb_ratio, stop_words_set, word2idx, idx2word, cos_sim,
+                  sim_predictor=None, import_score_threshold=-1., sim_score_threshold=0.5, sim_score_window=15,
+                  synonym_num=50, batch_size=32):
+    # first check the prediction of the original text
+    orig_probs = predictor([text_ls]).squeeze()
+    orig_label = torch.argmax(orig_probs)
+    orig_prob = orig_probs.max()
+    if true_label != orig_label:
+        return '', 0, orig_label, orig_label, 0
     else:
-        return 0, tok
+        len_text = len(text_ls)
+        if len_text < sim_score_window:
+            sim_score_threshold = 0.1  # shut down the similarity thresholding function
+        half_sim_score_window = (sim_score_window - 1) // 2
+        num_queries = 1
+
+        # get the pos and verb tense info
+        pos_ls = criteria.get_pos(text_ls)
+
+        # randomly get perturbed words
+        perturb_idxes = random.sample(range(len_text), int(len_text * perturb_ratio))
+        words_perturb = [(idx, text_ls[idx]) for idx in perturb_idxes]
+
+        # find synonyms
+        words_perturb_idx = [word2idx[word] for idx, word in words_perturb if word in word2idx]
+        synonym_words, _ = pick_most_similar_words_batch(words_perturb_idx, cos_sim, idx2word, synonym_num, 0.5)
+        synonyms_all = []
+        for idx, word in words_perturb:
+            if word in word2idx:
+                synonyms = synonym_words.pop(0)
+                if synonyms:
+                    synonyms_all.append((idx, synonyms))
+
+        # start replacing and attacking
+        text_prime = text_ls[:]
+        text_cache = text_prime[:]
+        num_changed = 0
+        for idx, synonyms in synonyms_all:
+            new_texts = [text_prime[:idx] + [synonym] + text_prime[min(idx + 1, len_text):] for synonym in synonyms]
+            new_probs = predictor(new_texts, batch_size=batch_size)
+
+            # compute semantic similarity
+            if idx >= half_sim_score_window and len_text - idx - 1 >= half_sim_score_window:
+                text_range_min = idx - half_sim_score_window
+                text_range_max = idx + half_sim_score_window + 1
+            elif idx < half_sim_score_window and len_text - idx - 1 >= half_sim_score_window:
+                text_range_min = 0
+                text_range_max = sim_score_window
+            elif idx >= half_sim_score_window and len_text - idx - 1 < half_sim_score_window:
+                text_range_min = len_text - sim_score_window
+                text_range_max = len_text
+            else:
+                text_range_min = 0
+                text_range_max = len_text
+            semantic_sims = \
+            sim_predictor.semantic_sim([' '.join(text_cache[text_range_min:text_range_max])] * len(new_texts),
+                                       list(map(lambda x: ' '.join(x[text_range_min:text_range_max]), new_texts)))[0]
+
+            num_queries += len(new_texts)
+            if len(new_probs.shape) < 2:
+                new_probs = new_probs.unsqueeze(0)
+            new_probs_mask = (orig_label != torch.argmax(new_probs, dim=-1)).data.cpu().numpy()
+            # prevent bad synonyms
+            new_probs_mask *= (semantic_sims >= sim_score_threshold)
+            # prevent incompatible pos
+            synonyms_pos_ls = [criteria.get_pos(new_text[max(idx - 4, 0):idx + 5])[min(4, idx)]
+                               if len(new_text) > 10 else criteria.get_pos(new_text)[idx] for new_text in new_texts]
+            pos_mask = np.array(criteria.pos_filter(pos_ls[idx], synonyms_pos_ls))
+            new_probs_mask *= pos_mask
+
+            if np.sum(new_probs_mask) > 0:
+                text_prime[idx] = synonyms[(new_probs_mask * semantic_sims).argmax()]
+                num_changed += 1
+                break
+            else:
+                new_label_probs = new_probs[:, orig_label] + torch.from_numpy(
+                        (semantic_sims < sim_score_threshold) + (1 - pos_mask).astype(float)).float().cuda()
+                new_label_prob_min, new_label_prob_argmin = torch.min(new_label_probs, dim=-1)
+                if new_label_prob_min < orig_prob:
+                    text_prime[idx] = synonyms[new_label_prob_argmin]
+                    num_changed += 1
+            text_cache = text_prime[:]
+        return ' '.join(text_prime), num_changed, orig_label, torch.argmax(predictor([text_prime])), num_queries
 
 
 def accuracy(out, labels):
