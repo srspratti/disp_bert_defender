@@ -1007,8 +1007,14 @@ def main():
                 bs = end - start
 
                 # Fixed labels
-                zeros = Variable(torch.FloatTensor(batch_size).fill_(0).cuda())
-                ones = Variable(torch.FloatTensor(batch_size).fill_(1).cuda())
+                # TODO : Just testing on seq_length 6 momentarily. Need to change it to max_seq_length
+                test_seq_length = 6
+                # zeros = Variable(torch.FloatTensor(batch_size).fill_(0).cuda())
+                # ones = Variable(torch.FloatTensor(batch_size).fill_(1).cuda())
+                zeros = torch.zeros(batch_size,test_seq_length,dtype=torch.float)
+                ones = torch.ones(batch_size,test_seq_length,dtype=torch.float)
+
+
 
                 # Use lable smoothing
                 tl = torch.full((bs, 1), 0.9)
