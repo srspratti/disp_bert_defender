@@ -38,15 +38,16 @@ from optimization import BertAdam, warmup_linear
 from Gan2vec_RobGAN_utils.defenses.scRNN.model import ScRNN
 from Gan2vec_RobGAN_utils.biLstm import BiLSTM
 from RobGAN.miscs.loss import loss_nll
+from Gan2vec_utils import *
 
 from bert_utils import *
 
-CHAR_VOCAB = []
-CHAR_VOCAB_BG = []
-w2i = defaultdict(lambda: 0.0)
-w2i_bg = defaultdict(lambda: 0.0)
-i2w = defaultdict(lambda: "UNK")
-i2w_bg = defaultdict(lambda: "UNK")
+# CHAR_VOCAB = []
+# CHAR_VOCAB_BG = []
+# w2i = defaultdict(lambda: 0.0)
+# w2i_bg = defaultdict(lambda: 0.0)
+# i2w = defaultdict(lambda: "UNK")
+# i2w_bg = defaultdict(lambda: "UNK")
 
 def main():
     parser = argparse.ArgumentParser()
@@ -567,7 +568,7 @@ def main():
             rep.append(word_rep)
             #modified_words.append(new_word)
         return rep
-
+    """
     def create_vocab(data_dir,text, background_train=False, cv_path=""):
 
         #train_examples = get_train_examples(data_dir)
@@ -603,6 +604,7 @@ def main():
                     open("./GAN2vec_RobGAN_data_oup/vocab/" + task_name + "i2w_" + str(WORD_LIMIT) + ".p", 'wb'))  # don't think its needed
         pickle.dump(CHAR_VOCAB, open("./GAN2vec_RobGAN_data_oup/vocab/" + task_name + "CHAR_VOCAB_ " + str(WORD_LIMIT) + ".p", 'wb'))
         return
+    """
 
     def get_closest(sentences):
         scores = []
@@ -966,6 +968,7 @@ def main():
         text, text_orig, encoder = get_data()
         num_samples = len(text)
         create_vocab(args.data_dir,text_orig)
+
 
         # get_data()
         # print("text type : ", type(text))

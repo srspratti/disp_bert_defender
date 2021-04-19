@@ -3,7 +3,8 @@ import torch
 from torch import nn
 from torch.autograd import Variable
 from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
-from Gan2vec_RobGAN_utils.defenses.scRNN.utils import *
+#from Gan2vec_RobGAN_utils.defenses.scRNN.utils import *
+from Gan2vec_utils import *
 
 from bert_model import BertForDiscriminator, BertConfig, WEIGHTS_NAME, CONFIG_NAME
 
@@ -232,11 +233,9 @@ class Discriminator(nn.Module):
 
         packed_input_seq = packed_input[0].detach().numpy()
 
-        st = []
-        #st_line = []
+        # st = []
+        # #st_line = []
         batch_lines = []
-        batch_tx = []
-        BATCH_SEQ_LEN = []
 
         #packed_input = packed_input[0].detach()
         #packed_input = packed_input[0].detach().numpy()
@@ -292,28 +291,37 @@ class Discriminator(nn.Module):
             # st, sim = list(zip(*st))
 
             #print("st: ", st)
-            st_line = " ".join(st)
+            st_line_new = " ".join(st_line)
             #st_line.append(st)
-            batch_lines.append(st_line)
+            batch_lines.append(st_line_new)
 
         #print("batch_lines : ", type(batch_lines))
         #print("batch_lines length : ", len(batch_lines))
         #print("batch_lines 1st element : ", batch_lines[0])
         #print("batch_lines 10th element : ", batch_lines[10])
+        batch_tx = []
+        BATCH_SEQ_LEN = []
         for line in batch_lines:
             #print("line: ", line)
             SEQ_LEN = len(line.split())
             line = line.lower()
-            # TODO -mscll : Create a separate GAN2vec and RobGAN Utils
-            X, _ = get_line_representation(line)
+            # TODO - mscll. : Create a separate GAN2vec and RobGAN Utils
 
+            X = get_line_representation(line)
             tx = Variable(torch.from_numpy(np.array([X]))).type(Xtype)
 
+            #batch_tx.append(tx)
             batch_tx.append(X)
-            BATCH_SEQ_LEN.append(SEQ_LEN)
 
+            BATCH_SEQ_LEN.append(SEQ_LEN)
+            #print("X :", type(X))
+            #print("tx :", type(tx))
+
+        #print("batch_tx : ", batch_tx)
+        #print("BATCH_SEQ_LEN : ", BATCH_SEQ_LEN)
+        X_t = torch.tensor(batch_tx, dtype=torch.float64)
         #packed_input = pack_padded_sequence(tx, [SEQ_LEN], batch_first=True)
-        packed_input = pack_padded_sequence(tx, BATCH_SEQ_LEN, batch_first=True)
+        packed_input = pack_padded_sequence(X_t, BATCH_SEQ_LEN, batch_first=True)
 
         return packed_input
 
