@@ -319,7 +319,7 @@ class Discriminator(nn.Module):
 
         #print("batch_tx : ", batch_tx)
         #print("BATCH_SEQ_LEN : ", BATCH_SEQ_LEN)
-        X_t = torch.tensor(batch_tx, dtype=torch.float64)
+        X_t = torch.tensor(batch_tx, dtype=torch.float)
         #packed_input = pack_padded_sequence(tx, [SEQ_LEN], batch_first=True)
         packed_input = pack_padded_sequence(X_t, BATCH_SEQ_LEN, batch_first=True)
 
