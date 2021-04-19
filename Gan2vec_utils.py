@@ -9,6 +9,8 @@ import numpy as np
 import pickle
 import random
 from random import shuffle
+import torch
+import torch.nn.functional as F
 
 CHAR_VOCAB = []
 CHAR_VOCAB_BG = []
@@ -166,6 +168,11 @@ def get_line_representation(line):
         rep.append(word_rep)
         # modified_words.append(new_word)
     return rep
+
+def loss_nll(bin_output, bin_label, multi_output, multi_label, lam=0.5):
+    L1 = F.binary_cross_entropy_with_logits(bin_output, bin_label)
+    L2 = F.cross_entropy(multi_output, multi_label)
+    return lam * L1 + (1.0 - lam) * L2
 
 def create_vocab(data_dir,text, background_train=False, cv_path=""):
 

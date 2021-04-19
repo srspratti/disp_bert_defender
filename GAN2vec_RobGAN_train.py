@@ -37,7 +37,8 @@ from tokenization import BertTokenizer
 from optimization import BertAdam, warmup_linear
 from Gan2vec_RobGAN_utils.defenses.scRNN.model import ScRNN
 from Gan2vec_RobGAN_utils.biLstm import BiLSTM
-from RobGAN.miscs.loss import loss_nll
+#from RobGAN.miscs.loss import loss_nll
+#from RobGAN.miscs.loss import loss_nll
 from Gan2vec_utils import *
 
 from bert_utils import *
@@ -1035,7 +1036,8 @@ def main():
                     #TODO - 1[test]: Modify below line
                     d_fake_bin, d_fake_multi=D(fake) # TODO - 1 : Need to change the Discriminator to return multiple tensors
                     #g_loss = loss(D(fake), tl)
-                    g_loss = loss(d_fake_bin, tl, d_fake_multi,zeros, lam=0.5)
+                    #g_loss = loss(d_fake_bin, tl, d_fake_multi,zeros, lam=0.5)
+                    g_loss = loss_nll(d_fake_bin, tl, d_fake_multi, zeros, lam=0.5)
                     g_loss.backward()
                     opt_g.step()
 
