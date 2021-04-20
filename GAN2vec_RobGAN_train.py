@@ -96,6 +96,9 @@ def main():
                         default="",
                         type=str,
                         help="Where do you want to store the pre-trained models downloaded from s3")
+    parser.add_argument("--do_lower_case",
+                        action='store_true',
+                        help="Set this flag if you are using an uncased model.")
     parser.add_argument("--max_seq_length",
                         default=128,
                         type=int,
@@ -180,6 +183,8 @@ def main():
     num_labels = num_labels_task[task_name]
     label_list = processor.get_labels()
 
+    tokenizer = BertTokenizer.from_pretrained("bert-base-uncased", do_lower_case=args.do_lower_case)
+
 
     # Parameters directly assignment in the code
     #DATA_DIR = 'data'
@@ -249,6 +254,16 @@ def main():
 
         return all_text_train_examples
 
+    def get_text_and_labels_train_examples(train_examples):
+        all_text_train_examples=[]
+        all_labels_train_examples=[]
+        label_map = {label: i for i, label in enumerate(label_list)}
+        for example in train_examples:
+            all_text_train_examples.append(example.text_a)
+            all_labels_train_examples.append(label_map[example.label])
+
+        return all_text_train_examples, all_labels_train_examples
+
     text = None
     encoder = None
 
@@ -256,7 +271,8 @@ def main():
 
 
         train_examples = get_train_examples(args.data_dir)
-        text = get_text_from_train_examples(train_examples)
+        #text = get_text_from_train_examples(train_examples)
+        text, labels = get_text_and_labels_train_examples(train_examples)
         #print("text: ", text)
         #print("text type : ", type(text))
         #print("text len : ", len(text))
@@ -306,7 +322,7 @@ def main():
         # encoder = FastText(text_new, min_count=1)
         # #encoder = Word2Vec.load(os.path.join('/tmp/pycharm_project_196/GAN2vec/data/w2v_haiku.model'))
         # print("encoder: ", encoder)
-        return text_new, text, encoder
+        return text_new, text, encoder, labels
     
     def get_lines_old(start, end, text, encoder):
         #text, encoder = get_data()
@@ -466,8 +482,10 @@ def main():
         for l in text_batch :
             #print("l in : ",l)
             seq_lens.append(len(l))
-            longest = len(l) if len(l) > longest else longest
+            #longest = len(l) if len(l) > longest else longest
             #longest = args.max_seq_length
+            # TODO : Might need to look into the max_seq_length
+            longest = args.max_seq_length
 
             sentence = []
             #print("encoder : ", encoder)
@@ -895,7 +913,7 @@ def main():
         torch.save(D, 'Discriminator.model')
         torch.save(G, 'generator.model')
 
-    def adversarial_attacks():
+    def adversarial_attacks(start , end):
 
         # ........code here................
 
@@ -904,11 +922,18 @@ def main():
 
         #text_a and labels
         #from train.tsv = get_train_examples(_create_examples(read_tsv)))
-        train_examples = processor.get_train_examples(args.data_dir)
-        features_for_attacks, w2i_disp, i2w_disp, vocab_size = convert_examples_to_features_disc_train(train_examples, label_list,tokenizer=None,max_seq_length=6)
+        train_examples_batch = processor.get_train_examples_for_attacks(args.data_dir, start , end)
+        #train_examples = processor.get_train_examples(args.data_dir)
+        features_for_attacks, w2i_disp, i2w_disp, vocab_size = convert_examples_to_features_disc_train(train_examples_batch, label_list,tokenizer=None,max_seq_length=6)
 
         all_tokens = torch.tensor([f.token_ids for f in features_for_attacks], dtype=torch.long)
         all_label_id = torch.tensor([f.label_id for f in features_for_attacks], dtype=torch.long)
+
+        print("all_tokens type : ", type(all_tokens))
+        print("all_label_id type : ", type(all_label_id))
+        print("all_tokens type : ", all_tokens.shape)
+        print("all_label_id type : ", all_label_id.shape)
+        #assert len(all_tokens) ==
 
         data_for_attacks = TensorDataset(all_tokens, all_label_id)
         sampler_for_attacks = RandomSampler(data_for_attacks)  # for NO GPU
@@ -927,7 +952,7 @@ def main():
             #    tokens,args.max_seq_length, args.max_ngram_length, tokenizer, i2w,embeddings = None, emb_index = None, words = None)
 
             features_with_flaws, all_flaw_tokens, all_token_idx, all_truth_tokens = convert_examples_to_features_flaw_attacks_gr(
-                tokens, args.max_seq_length, args.max_ngram_length, i2w, tokenizer=None, embeddings=None, emb_index=None,
+                tokens, args.max_seq_length, args.max_ngram_length, i2w, tokenizer, embeddings=None, emb_index=None,
                 words=None)
 
             all_token_idx = ",".join([str(id) for tok in all_token_idx for id in tok])
@@ -959,12 +984,13 @@ def main():
             # lens = SEQ_LEN
             #
             #real_adv = pack_padded_sequence(inp, lens, batch_first=True)
-
+            print("all_flaw_tokens type ", type(all_flaw_tokens))
+            print("all_flaw_tokens type ", len(all_flaw_tokens))
             batch_tx = []
             BATCH_SEQ_LEN = []
             Xtype = torch.FloatTensor
             for line in all_flaw_tokens:
-                # print("line: ", line)
+                #print("line: ", line)
                 SEQ_LEN = len(line.split())
                 line = line.lower()
                 # TODO - mscll. : Create a separate GAN2vec and RobGAN Utils
@@ -979,10 +1005,12 @@ def main():
                 # print("X :", type(X))
                 # print("tx :", type(tx))
 
-            # print("batch_tx : ", batch_tx)
-            # print("BATCH_SEQ_LEN : ", BATCH_SEQ_LEN)
+            print("batch_tx : ", len(batch_tx))
+            #print("batch_tx : ", batch_tx)
+            #print("BATCH_SEQ_LEN : ", BATCH_SEQ_LEN)
             X_t = torch.tensor(batch_tx, dtype=torch.float)
             # packed_input = pack_padded_sequence(tx, [SEQ_LEN], batch_first=True)
+            #print("X_t = torch.tensor(batch_tx, dtype=torch.float) shape: ",X_t.shape)
             real_adv = pack_padded_sequence(X_t, BATCH_SEQ_LEN, batch_first=True)
 
         # flaw_ids_or_flaw_labels
@@ -992,7 +1020,7 @@ def main():
         return loss_nll, loss_nll
 
     def train(epochs, batch_size=256, latent_size=256, K=1):
-        text, text_orig, encoder = get_data()
+        text, text_orig, encoder, labels = get_data()
         num_samples = len(text)
         create_vocab(args.data_dir,text_orig)
 
@@ -1107,7 +1135,8 @@ def main():
                 # to-do In Case if we want to use a separate loss function for the Adv. generation
                 # Adversarial attack
                 # TODO - 2-a : adversarial attacks def :
-                real_adv, flaw_ids_or_flow_labels = adversarial_attacks() #flaw_ids or flaw_labels need to figure out
+                real_adv, flaw_ids_or_flow_labels = adversarial_attacks(start, end)  # flaw_ids or flaw_labels need to figure out
+                #real_adv, flaw_ids_or_flow_labels = adversarial_attacks() #flaw_ids or flaw_labels need to figure out
                     # real_adv are packed_sequence should be similar to real
                 # TODO - 1 [test] : Need to understand whether we need *multi outputs from D() change to *multi[0]
                 d_adv_bin, d_adv_multi = D(real_adv) # to-do : to use this .....April 13th

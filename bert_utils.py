@@ -202,6 +202,35 @@ def convert_examples_to_features_disc_train(examples, label_list, max_seq_length
     for (ex_index, example) in enumerate(examples):
         token_ids = []
         tokens = word_tokenize(example.text_a)
+        if len(tokens) > max_seq_length: # TODO : just verify with the master version whether this line is ocrrect or not ?
+            tokens = tokens[:max_seq_length]
+        for token in tokens:
+            if token not in w2i:
+                w2i[token] = index
+                i2w[index] = token
+                index += 1
+            token_ids.append(w2i[token])
+        token_ids += [0] * (max_seq_length - len(token_ids))
+        label_id = label_map[example.label]
+
+        if ex_index < 2:
+            logger.info("*** Example ***")
+            logger.info("tokens: %s" % " ".join([str(x) for x in tokens]))
+            logger.info("token_ids: %s" % " ".join([str(x) for x in token_ids]))
+
+        features.append(
+            InputFeatures_disc_train(token_ids=token_ids,
+                                     label_id=label_id))
+    return features, w2i, i2w, index
+
+def convert_examples_to_features_gan2vec(examples, label_list, max_seq_length, tokenizer, w2i={}, i2w={}, index=1):
+    """Loads a data file into a list of `InputBatch`s."""
+
+    label_map = {label: i for i, label in enumerate(label_list)}
+    features = []
+    for (ex_index, example) in enumerate(examples):
+        token_ids = []
+        tokens = word_tokenize(example.text_a)
         if len(tokens) != max_seq_length: # TODO : Might need to change it back, used it for Gan2vec and RobGAN
             tokens = tokens[:max_seq_length]
         for token in tokens:
@@ -695,8 +724,8 @@ def convert_examples_to_features_flaw_attacks_gr(examples, max_seq_length, max_n
             truth_tokens_seq.append(tok)
 
             label, tok_flaw = random_attack(tok, embeddings, emb_index, words)  # embeddings
-            #word_pieces = tokenizer.tokenize(tok_flaw)
-            word_pieces = word_tokenize(tok_flaw)
+            word_pieces = tokenizer.tokenize(tok_flaw)
+            #word_pieces = word_tokenize(tok_flaw)
 
             flaw_labels += [label] * len(word_pieces)
             flaw_pieces += word_pieces
@@ -722,6 +751,7 @@ def convert_examples_to_features_flaw_attacks_gr(examples, max_seq_length, max_n
         flaw_pieces = ["[CLS]"] + flaw_pieces + ["[SEP]"]
         flaw_labels = [0] + flaw_labels + [0]
 
+        # TODO : Why do we need flaw_ids
         flaw_ids = tokenizer.convert_tokens_to_ids(flaw_pieces)
         flaw_mask = [1] * len(flaw_ids)
 
@@ -853,6 +883,13 @@ class SST2Processor(DataProcessor):
             return self._create_examples(
                 self._read_tsv(os.path.join(data_dir, "train.tsv")), "train")
 
+    def get_train_examples_for_attacks(self, data_dir, start, end):
+        """See base class."""
+        if 'tsv' in data_dir:
+            return self._create_examples_batch_adversarial_attacks(start, end, self._read_tsv(data_dir), "train")
+        else:
+            return self._create_examples_batch_adversarial_attacks(start, end, self._read_tsv(os.path.join(data_dir, "train.tsv")), "train")
+
     def get_dev_examples(self, data_dir):
         """See base class."""
         if 'tsv' in data_dir:
@@ -920,6 +957,27 @@ class SST2Processor(DataProcessor):
             examples.append(
                 InputExample(guid=guid, text_a=text_a, text_b=None, label=label, flaw_labels=flaw_labels))
         return examples
+
+
+    def _create_examples_batch_adversarial_attacks(self, start, end , lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        i = int(start)
+        for line_idx in range(end-start):
+        #for (i, line) in enumerate(lines):
+            flaw_labels = None
+            #if i == 0:
+            #    continue
+            guid = "%s-%s" % (set_type, i)
+            text_a = lines[line_idx][0]
+            label = lines[line_idx][1]
+            if len(lines[line_idx]) > 2: flaw_labels = lines[line_idx][2]
+            examples.append(
+                InputExample(guid=guid, text_a=text_a, text_b=None, label=label, flaw_labels=flaw_labels))
+        return examples
+
+
+
 
     def create_examples_for_attacks(self, lines):
         "Create examples for attacks"
