@@ -664,7 +664,7 @@ def convert_examples_to_features_flaw_attacks(examples, max_seq_length, max_ngra
 
     return features, all_flaw_tokens, all_token_idx, all_truth_tokens
 
-def convert_examples_to_features_flaw_attacks_gr(examples, max_seq_length, max_ngram_length, tokenizer, i2w, embeddings=None,
+def convert_examples_to_features_flaw_attacks_gr(examples, max_seq_length, max_ngram_length, i2w,tokenizer=None, embeddings=None,
                                       emb_index=None, words=None):
     """Loads a data file into a list of `InputBatch`s."""
 
