@@ -905,7 +905,7 @@ def main():
         #text_a and labels
         #from train.tsv = get_train_examples(_create_examples(read_tsv)))
         train_examples = processor.get_train_examples(args.data_dir)
-        features_for_attacks, w2i_disp, i2w_disp, vocab_size = convert_examples_to_features_disc_train(train_examples)
+        features_for_attacks, w2i_disp, i2w_disp, vocab_size = convert_examples_to_features_disc_train(train_examples, label_list,tokenizer=None,max_seq_length=6)
 
         all_tokens = torch.tensor([f.token_ids for f in features_for_attacks], dtype=torch.long)
         all_label_id = torch.tensor([f.label_id for f in features_for_attacks], dtype=torch.long)
@@ -926,8 +926,8 @@ def main():
             #features_with_flaws, all_flaw_tokens, all_token_idx, all_truth_tokens = convert_examples_to_features_flaw_attacks(
             #    tokens,args.max_seq_length, args.max_ngram_length, tokenizer, i2w,embeddings = None, emb_index = None, words = None)
 
-            features_with_flaws, all_flaw_tokens, all_token_idx, all_truth_tokens = convert_examples_to_features_flaw_attacks(
-                tokens, args.max_seq_length, args.max_ngram_length, word_tokenize, i2w, embeddings=None, emb_index=None,
+            features_with_flaws, all_flaw_tokens, all_token_idx, all_truth_tokens = convert_examples_to_features_flaw_attacks_gr(
+                tokens, args.max_seq_length, args.max_ngram_length, i2w, tokenizer=None, embeddings=None, emb_index=None,
                 words=None)
 
             all_token_idx = ",".join([str(id) for tok in all_token_idx for id in tok])
@@ -947,17 +947,43 @@ def main():
             all_truth_tokens_flat = all_truth_tokens_flat.strip("''").strip("``")
 
             # Converting the all_flaw_tokens to real_adv:
-            for line in all_flaw_tokens:
-                line = line.lower()
-            Xtype = torch.FloatTensor
-            ytype = torch.LongTensor
+            # for line in all_flaw_tokens:
+            #     line = line.lower()
+            # Xtype = torch.FloatTensor
+            # ytype = torch.LongTensor
+            #
+            # X, _ = get_line_representation(line)
+            # tx = Variable(torch.from_numpy(np.array([X]))).type(Xtype)
+            # SEQ_LEN = len(line.split())
+            # inp = tx
+            # lens = SEQ_LEN
+            #
+            #real_adv = pack_padded_sequence(inp, lens, batch_first=True)
 
-            X, _ = get_line_representation(line)
-            tx = Variable(torch.from_numpy(np.array([X]))).type(Xtype)
-            SEQ_LEN = len(line.split())
-            inp = tx
-            lens = SEQ_LEN
-            real_adv = pack_padded_sequence(inp, lens, batch_first=True)
+            batch_tx = []
+            BATCH_SEQ_LEN = []
+            Xtype = torch.FloatTensor
+            for line in all_flaw_tokens:
+                # print("line: ", line)
+                SEQ_LEN = len(line.split())
+                line = line.lower()
+                # TODO - mscll. : Create a separate GAN2vec and RobGAN Utils
+
+                X = get_line_representation(line)
+                tx = Variable(torch.from_numpy(np.array([X]))).type(Xtype)
+
+                # batch_tx.append(tx)
+                batch_tx.append(X)
+
+                BATCH_SEQ_LEN.append(SEQ_LEN)
+                # print("X :", type(X))
+                # print("tx :", type(tx))
+
+            # print("batch_tx : ", batch_tx)
+            # print("BATCH_SEQ_LEN : ", BATCH_SEQ_LEN)
+            X_t = torch.tensor(batch_tx, dtype=torch.float)
+            # packed_input = pack_padded_sequence(tx, [SEQ_LEN], batch_first=True)
+            real_adv = pack_padded_sequence(X_t, BATCH_SEQ_LEN, batch_first=True)
 
         # flaw_ids_or_flaw_labels
         return real_adv, flaw_labels
