@@ -1011,8 +1011,8 @@ def main():
                 test_seq_length = 6
                 # zeros = Variable(torch.FloatTensor(batch_size).fill_(0).cuda())
                 # ones = Variable(torch.FloatTensor(batch_size).fill_(1).cuda())
-                zeros = torch.zeros(batch_size,test_seq_length,dtype=torch.float)
-                ones = torch.ones(batch_size,test_seq_length,dtype=torch.float)
+                zeros = torch.zeros(batch_size, test_seq_length, dtype=torch.long)
+                ones = torch.ones(batch_size, test_seq_length, dtype=torch.long)
 
 
 
@@ -1033,16 +1033,22 @@ def main():
 
                     # GAN fooling ability
                     fake = G(greal)
-                    print("type of fake : ", type(fake))
-                    print("Shape of fake : ", fake.shape)
-                    print("type of real :", type(real))
-                    #print("Shape of real :", real.shape)
-                    print("type of greal :", type(greal))
-                    print("Shape of greal :", greal.shape)
+                    # print("type of fake : ", type(fake))
+                    # print("Shape of fake : ", fake.shape)
+                    # print("type of real :", type(real))
+                    # #print("Shape of real :", real.shape)
+                    # print("type of greal :", type(greal))
+                    # print("Shape of greal :", greal.shape)
                     #TODO - 1[test]: Modify below line
                     d_fake_bin, d_fake_multi=D(fake) # TODO - 1 : Need to change the Discriminator to return multiple tensors
                     #g_loss = loss(D(fake), tl)
                     #g_loss = loss(d_fake_bin, tl, d_fake_multi,zeros, lam=0.5)
+                    # print("d_fake_bin type : ", type(d_fake_bin))
+                    # print("d_fake_bin shape : ", d_fake_bin.shape)
+                    # print("d_fake_multi type : ", type(d_fake_multi))
+                    # print("d_fake_multi shape : ", d_fake_multi.shape)
+                    # print("d_fake_multi value : ", d_fake_multi[0,:,:])
+
                     g_loss = loss_nll(d_fake_bin, tl, d_fake_multi, zeros, lam=0.5)
                     g_loss.backward()
                     opt_g.step()
@@ -1066,7 +1072,7 @@ def main():
                 #d_r_loss = loss(d_real_bin, tl, d_real_multi, zeros, lam=0.5)
                 #TODO - 1[test]: Modify below line
                 d_fake_bin_d, d_fake_multi_d = D(fake)
-                d_f_loss = loss(d_fake_bin_d, fl, d_fake_multi_d, ones, lam=0.5)
+                d_f_loss = loss_nll(d_fake_bin_d, fl, d_fake_multi_d, ones, lam=0.5)
 
                 # to-do : Or combine both d_real_bin into adversaries
                 #d_real_adv_bin, d_real_adv_multi = D(real)

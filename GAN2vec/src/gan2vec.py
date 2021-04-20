@@ -186,6 +186,7 @@ class Discriminator(nn.Module):
 
         #self.linear_adv = nn.Linear(2 * hdim, output_dim)
         # to-do : Can we have 2 deciders in nn ?
+        # TODO : Test it while commenting the below block
         self.recurrent = nn.Sequential(
             nn.LSTM(
                 embed_size,
@@ -199,7 +200,9 @@ class Discriminator(nn.Module):
         #char_vocab_size=CHAR_VOCAB
         #print("char_vocab_size: ", char_vocab_size)
         hdim=50
-        output_dim=self.max_seq_length
+        # TODO : Changed the output_dim to check the Discriminator major bug
+        #output_dim=self.max_seq_length
+        output_dim = 2
         #self.decider_multi = nn.Sequential(
         #    nn.LSTM(3*char_vocab_size, hdim, 1, batch_first=True,bidirectional=True),
         #    nn.Linear(2*hdim, output_dim))
@@ -409,9 +412,15 @@ class Discriminator(nn.Module):
         packed_input_lstm= self.cvrt_tsr_line_representation(self.packed_input)
         #packed_input_lstm = pack_padded_sequence(self.packed_input, lens, batch_first=True)
         packed_output, _ = self.lstm(packed_input_lstm)
+        print("packed_output from the LSTM layer: ", type(packed_output))
         h, _ = pad_packed_sequence(packed_output, batch_first=True)
+        print("h value from the LSTM Layer pad_packed_sequence : ", type(h))
+        print("h value from the LSTM Layer pad_packed_sequence h shape : ", h.shape)
         #out = self.decider_multi.Linear(h)  # out is batch_size x max_seq_len x class_size
         out = self.linear(h)  # out is batch_size x max_seq_len x class_size
+        print("out value from the Linear layer: ", type(out))
+        print("out value from the Linear layer: shape ", out.shape)
+
         out = out.transpose(dim0=1, dim1=2)
         #return out  # out is batch_size  x class_size x  max_seq_len
 
