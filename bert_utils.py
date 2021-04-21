@@ -730,8 +730,9 @@ def convert_examples_to_features_flaw_attacks_gr(examples, max_seq_length, max_n
             # TODO : Important, critical addition to the code : adding new words ( common words such as 'the' , 'is' , 'a' etc..)
             #if tok_id == 0: break # Uncomment to remove the below to-do
 
-            if tok_id == 0 : tok_id = np.random.choice([2,47,3,4]) # TODO : change -1
-            if tok_id == 1 : tok_id = np.random.choice([2, 47, 3, 4]) # TODO : change -2
+            #if tok_id == 0 or tok_id == 1 or tok_id == 359 : tok_id = np.random.choice([2,47,3,4]) # TODO : change -1
+            if tok_id == 0 or tok_id == 1 or tok_id == 359 : tok_id = np.random.choice([2])  # TODO : change -1
+            #if tok_id == 1 : tok_id = np.random.choice([2]) # TODO : change -2
 
             tok = i2w[tok_id]
 
