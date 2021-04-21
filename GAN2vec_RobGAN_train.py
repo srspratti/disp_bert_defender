@@ -482,10 +482,10 @@ def main():
         for l in text_batch :
             #print("l in : ",l)
             seq_lens.append(len(l))
-            #longest = len(l) if len(l) > longest else longest
+            longest = len(l) if len(l) > longest else longest
             #longest = args.max_seq_length
             # TODO : Might need to look into the max_seq_length
-            longest = args.max_seq_length
+            #longest = 6
 
             sentence = []
             #print("encoder : ", encoder)
@@ -568,24 +568,29 @@ def main():
 
         # dirty case
         if len(word) == 1 or len(word) == 2:
-            rep = one_hot(word[0]) + zero_vector() + one_hot(word[-1])
+            rep = one_hot(word[0]) + zero_vector() + one_hot(word[-1]) # Return value used
             return rep, word
 
-        rep = one_hot(word[0]) + bag_of_chars(word[1:-1]) + one_hot(word[-1])
+        rep = one_hot(word[0]) + bag_of_chars(word[1:-1]) + one_hot(word[-1]) # Return value used
         if len(word) > 3:
             idx = random.randint(1, len(word) - 3)
-            word = word[:idx] + word[idx + 1] + word[idx] + word[idx + 2:]
+            word = word[:idx] + word[idx + 1] + word[idx] + word[idx + 2:] # return value not used
 
         return rep, word
 
     def get_line_representation(line):
         rep = []
         #modified_words = []
+        print("line length inside get_line_representation : ", len(line))
+        print("line : ", line)
         for word in line.split():
+            print("word in line.split()", word)
             word_rep, _ = get_swap_word_representation(word)
+            print("word_rep in line.split() len ", len(word_rep))
             new_word = word
             rep.append(word_rep)
             #modified_words.append(new_word)
+        print("rep length expected : exp: len(line) == len(rep) ", len(rep))
         return rep
     """
     def create_vocab(data_dir,text, background_train=False, cv_path=""):
@@ -924,23 +929,29 @@ def main():
         #from train.tsv = get_train_examples(_create_examples(read_tsv)))
         train_examples_batch = processor.get_train_examples_for_attacks(args.data_dir, start , end)
         #train_examples = processor.get_train_examples(args.data_dir)
-        features_for_attacks, w2i_disp, i2w_disp, vocab_size = convert_examples_to_features_disc_train(train_examples_batch, label_list,tokenizer=None,max_seq_length=6)
+        features_for_attacks, w2i_disp, i2w_disp, vocab_size = convert_examples_to_features_gan2vec(train_examples_batch, label_list,tokenizer=None,max_seq_length=6)
 
         all_tokens = torch.tensor([f.token_ids for f in features_for_attacks], dtype=torch.long)
         all_label_id = torch.tensor([f.label_id for f in features_for_attacks], dtype=torch.long)
 
-        print("all_tokens type : ", type(all_tokens))
-        print("all_label_id type : ", type(all_label_id))
-        print("all_tokens type : ", all_tokens.shape)
-        print("all_label_id type : ", all_label_id.shape)
+        # print("all_tokens type : ", type(all_tokens))
+        # print("all_label_id type : ", type(all_label_id))
+        # print("all_tokens type : ", all_tokens.shape)
+        # print("all_label_id type : ", all_label_id.shape)
         #assert len(all_tokens) ==
 
         data_for_attacks = TensorDataset(all_tokens, all_label_id)
         sampler_for_attacks = RandomSampler(data_for_attacks)  # for NO GPU
         # train_sampler = DistributedSampler(train_data)
 
-        dataloader_for_attack = DataLoader(data_for_attacks, sampler=sampler_for_attacks)
+        #dataloader_for_attack = DataLoader(data_for_attacks, sampler=sampler_for_attacks)
+        # TOD : Removed Sampler, need to verify : Need to remove it for random_attacks also
+        dataloader_for_attack = DataLoader(data_for_attacks)
 
+        all_batch_flaw_tokens = []
+        all_batch_flaw_labels = []
+        all_batch_flaw_labels_truth = []
+        flaw_labels_lst = []
         for step, batch in enumerate(tqdm(dataloader_for_attack, desc="Iteration")):
             batch = tuple(t.to(device) for t in batch)
             tokens, _ = batch  # , label_id, ngram_ids, ngram_labels, ngram_masks
@@ -951,9 +962,10 @@ def main():
             #features_with_flaws, all_flaw_tokens, all_token_idx, all_truth_tokens = convert_examples_to_features_flaw_attacks(
             #    tokens,args.max_seq_length, args.max_ngram_length, tokenizer, i2w,embeddings = None, emb_index = None, words = None)
 
-            features_with_flaws, all_flaw_tokens, all_token_idx, all_truth_tokens = convert_examples_to_features_flaw_attacks_gr(
+            features_with_flaws, all_flaw_tokens, all_token_idx, all_truth_tokens, all_flaw_labels_truth = convert_examples_to_features_flaw_attacks_gr(
                 tokens, args.max_seq_length, args.max_ngram_length, i2w, tokenizer, embeddings=None, emb_index=None,
                 words=None)
+
 
             all_token_idx = ",".join([str(id) for tok in all_token_idx for id in tok])
             all_truth_tokens_flat = ' '.join([str(id) for tok in all_truth_tokens for id in tok])
@@ -961,60 +973,65 @@ def main():
             flaw_ids = torch.tensor([f.flaw_ids for f in features_with_flaws])
             flaw_labels = torch.tensor([f.flaw_labels for f in features_with_flaws])
 
+            print("all_flaw_tokens : before before ", all_flaw_tokens)
             all_flaw_tokens = ' '.join([str(y) for x in all_flaw_tokens for y in x])
 
             flaw_ids_ar = flaw_ids.detach().cpu().numpy()
             flaw_ids_lst = flaw_ids.tolist()
             flaw_labels_ar = flaw_labels.detach().cpu().numpy()
             flaw_labels_lst = flaw_labels.tolist()
+            print("flaw_labels_lst : ", flaw_labels_lst)
+            print("all_flaw_tokens : before ", all_flaw_tokens)
             all_flaw_tokens = all_flaw_tokens.strip("''").strip("``")
-            # print("all_flaw_tokens: ",all_flaw_tokens)
             all_truth_tokens_flat = all_truth_tokens_flat.strip("''").strip("``")
+            # print("all_flaw_tokens: ",all_flaw_tokens)
+            print("all_flaw_tokens : ", all_flaw_tokens)
+            print("all_truth_tokens_flat : ", all_truth_tokens_flat)
+            print("all_flaw_labels_truth : ", all_flaw_labels_truth)
+            print("+++++++++++++++++++++++++++++++++++")
+            all_batch_flaw_tokens.append(all_flaw_tokens)
+            all_batch_flaw_labels.append(flaw_labels_lst)
+            all_batch_flaw_labels_truth.append(all_flaw_labels_truth)
 
-            # Converting the all_flaw_tokens to real_adv:
-            # for line in all_flaw_tokens:
-            #     line = line.lower()
-            # Xtype = torch.FloatTensor
-            # ytype = torch.LongTensor
-            #
-            # X, _ = get_line_representation(line)
-            # tx = Variable(torch.from_numpy(np.array([X]))).type(Xtype)
-            # SEQ_LEN = len(line.split())
-            # inp = tx
-            # lens = SEQ_LEN
-            #
-            #real_adv = pack_padded_sequence(inp, lens, batch_first=True)
-            print("all_flaw_tokens type ", type(all_flaw_tokens))
-            print("all_flaw_tokens type ", len(all_flaw_tokens))
-            batch_tx = []
-            BATCH_SEQ_LEN = []
-            Xtype = torch.FloatTensor
-            for line in all_flaw_tokens:
-                #print("line: ", line)
-                SEQ_LEN = len(line.split())
-                line = line.lower()
-                # TODO - mscll. : Create a separate GAN2vec and RobGAN Utils
+        # print("all_flaw_tokens type ", type(all_flaw_tokens))
+        # print("all_flaw_tokens type ", len(all_flaw_tokens))
+        # print("all_batch_flaw_tokens type ", type(all_batch_flaw_tokens))
+        # print("all_batch_flaw_tokens len ", len(all_batch_flaw_tokens))
+        # print("all_batch_flaw_labels type ", type(all_batch_flaw_labels))
+        # print("all_batch_flaw_labels len ", len(all_batch_flaw_labels))
+        batch_tx = []
+        BATCH_SEQ_LEN = []
+        Xtype = torch.FloatTensor
+        for line in all_batch_flaw_tokens:
+            print("line: length : SBPLSHP : before:  ", len(line))
+            SEQ_LEN = len(line.split())
+            line = line.lower()
+            print("line: length : SBPLSHP : after: ", len(line))
+            # TODO - mscll. : Create a separate GAN2vec and RobGAN Utils
 
-                X = get_line_representation(line)
-                tx = Variable(torch.from_numpy(np.array([X]))).type(Xtype)
+            X = get_line_representation(line)
+            tx = Variable(torch.from_numpy(np.array([X]))).type(Xtype)
 
-                # batch_tx.append(tx)
-                batch_tx.append(X)
+            # batch_tx.append(tx)
+            batch_tx.append(X)
+            print("X Length ", len(X))
 
-                BATCH_SEQ_LEN.append(SEQ_LEN)
-                # print("X :", type(X))
-                # print("tx :", type(tx))
 
-            print("batch_tx : ", len(batch_tx))
-            #print("batch_tx : ", batch_tx)
-            #print("BATCH_SEQ_LEN : ", BATCH_SEQ_LEN)
-            X_t = torch.tensor(batch_tx, dtype=torch.float)
-            # packed_input = pack_padded_sequence(tx, [SEQ_LEN], batch_first=True)
-            #print("X_t = torch.tensor(batch_tx, dtype=torch.float) shape: ",X_t.shape)
-            real_adv = pack_padded_sequence(X_t, BATCH_SEQ_LEN, batch_first=True)
+
+            BATCH_SEQ_LEN.append(SEQ_LEN)
+            # print("X :", type(X))
+            # print("tx :", type(tx))
+
+        # print("batch_tx : ", len(batch_tx))
+        # print("BATCH_SEQ_LEN : ", BATCH_SEQ_LEN)
+        print("BATCH_SEQ_LEN : ", BATCH_SEQ_LEN)
+        X_t = torch.tensor(batch_tx, dtype=torch.float)
+        # packed_input = pack_padded_sequence(tx, [SEQ_LEN], batch_first=True)
+        # print("X_t = torch.tensor(batch_tx, dtype=torch.float) shape: ",X_t.shape)
+        real_adv = pack_padded_sequence(X_t, BATCH_SEQ_LEN, batch_first=True)
 
         # flaw_ids_or_flaw_labels
-        return real_adv, flaw_labels
+        return real_adv, all_flaw_labels_truth
 
     def get_loss():
         return loss_nll, loss_nll

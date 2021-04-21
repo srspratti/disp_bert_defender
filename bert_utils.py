@@ -231,8 +231,13 @@ def convert_examples_to_features_gan2vec(examples, label_list, max_seq_length, t
     for (ex_index, example) in enumerate(examples):
         token_ids = []
         tokens = word_tokenize(example.text_a)
-        if len(tokens) != max_seq_length: # TODO : Might need to change it back, used it for Gan2vec and RobGAN
+        #print("length of tokens: ", len(tokens))
+        if len(tokens) > max_seq_length: # TODO : Might need to change it back, used it for Gan2vec and RobGAN
             tokens = tokens[:max_seq_length]
+        # TODO : Padding for sentences less than max_sequence_length
+        # if len(tokens) < max_seq_length:
+        #     tokens = tokens + tokens
+        #print("length of tokens: after max_seq_length: ", len(tokens))
         for token in tokens:
             if token not in w2i:
                 w2i[token] = index
@@ -240,6 +245,7 @@ def convert_examples_to_features_gan2vec(examples, label_list, max_seq_length, t
                 index += 1
             token_ids.append(w2i[token])
         token_ids += [0] * (max_seq_length - len(token_ids))
+        #print("length of token_ids: ", len(token_ids))
         label_id = label_map[example.label]
 
         if ex_index < 2:
@@ -701,6 +707,7 @@ def convert_examples_to_features_flaw_attacks_gr(examples, max_seq_length, max_n
     all_flaw_tokens = []
     all_token_idx = []
     all_truth_tokens = []
+    all_flaw_labels_truth = []
 
 
     for (ex_index, example) in enumerate(examples):
@@ -708,24 +715,37 @@ def convert_examples_to_features_flaw_attacks_gr(examples, max_seq_length, max_n
         tokens = example
 
         flaw_labels = []
+        flaw_labels_truth = []
         flaw_pieces = []
         token_ids_seq = []
         flaw_tokens_seq = []
         truth_tokens_seq = []
-
+        print("length of the tokens: ", len(tokens))
+        tokens_print = [tok for tok in tokens]
+        print("tokens : ", tokens_print)
         for idx, tok_id in enumerate(tokens):
 
-            # print("tok_id : ",tok_id)
+            #print("tok_id : ",tok_id)
 
-            if tok_id == 0: break
+            # TODO : Important, critical addition to the code : adding new words ( common words such as 'the' , 'is' , 'a' etc..)
+            #if tok_id == 0: break # Uncomment to remove the below to-do
+
+            if tok_id == 0 : tok_id = np.random.choice([2,47,3,4]) # TODO : change -1
+            if tok_id == 1 : tok_id = np.random.choice([2, 47, 3, 4]) # TODO : change -2
 
             tok = i2w[tok_id]
+
+            #print("tok_id : ", tok_id)
+            #print("idx is {} : tok_id is {} and tok is {}".format(idx, tok_id,tok))
 
             truth_tokens_seq.append(tok)
 
             label, tok_flaw = random_attack(tok, embeddings, emb_index, words)  # embeddings
             word_pieces = tokenizer.tokenize(tok_flaw)
             #word_pieces = word_tokenize(tok_flaw)
+
+            print("idx is {} : tok_id = {} : tok = {} : tok_flaw = {} : label = {} ".format(idx, tok_id, tok, tok_flaw,
+                                                                                            label))
 
             flaw_labels += [label] * len(word_pieces)
             flaw_pieces += word_pieces
@@ -734,17 +754,27 @@ def convert_examples_to_features_flaw_attacks_gr(examples, max_seq_length, max_n
             flaw_tokens_seq.append(tok_flaw)
             if label == 1:
                 token_ids_seq.append(int(idx))
+                flaw_label_word = 1
+                flaw_labels_truth.append(flaw_label_word)
+            else:
+                non_flaw_word = 0
+                flaw_labels_truth.append(non_flaw_word)
            # token_ids_seq.append(idx)
             # print("idx: ", idx)
             # print("tok_flaw: ", tok_flaw)
             # print("flaw_tokens_seq: ", flaw_tokens_seq)
             # print("token_ids_seq: ", token_ids_seq)
 
+            print("word_pieces : ", word_pieces)
+            print("len of flaw_pieces: ", len(flaw_pieces))
             if len(flaw_pieces) > max_seq_length - 2:
+                print("s") # TODO : Just include this check while running random_attacks and check whether the control comes here or not ?
                 flaw_pieces = flaw_pieces[:(max_seq_length - 2)]
                 flaw_labels = flaw_labels[:(max_seq_length - 2)]
-                break
+                #break
 
+        print("all_flaw_tokens are {} and all_truth_tokens are {}".format(len(flaw_tokens_seq),len(truth_tokens_seq)))
+        all_flaw_labels_truth.append(flaw_labels_truth)
         all_flaw_tokens.append(flaw_tokens_seq)
         all_token_idx.append(token_ids_seq)
         all_truth_tokens.append(truth_tokens_seq)
@@ -763,10 +793,17 @@ def convert_examples_to_features_flaw_attacks_gr(examples, max_seq_length, max_n
         assert len(flaw_ids) == max_seq_length
         assert len(flaw_mask) == max_seq_length
         assert len(flaw_labels) == max_seq_length
+        # if (len(all_flaw_tokens) != max_seq_length):
+        #     print("all_flaw_tokens: ", all_flaw_tokens)
+        # if (len(all_truth_tokens) != max_seq_length):
+        #     print("all_truth_tokens which is less than 6: ", all_truth_tokens)
+        # #     print("all_flaw_tokens ex_index : ", ex_index)
+        #assert len(all_flaw_tokens) == max_seq_length
+
 
         features.append(InputFeatures_flaw(flaw_ids=flaw_ids, flaw_mask=flaw_mask, flaw_labels=flaw_labels))
 
-    return features, all_flaw_tokens, all_token_idx, all_truth_tokens
+    return features, all_flaw_tokens, all_token_idx, all_truth_tokens, all_flaw_labels_truth
 
 
 class DataProcessor(object):
