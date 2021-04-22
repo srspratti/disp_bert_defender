@@ -202,7 +202,7 @@ def convert_examples_to_features_disc_train(examples, label_list, max_seq_length
     for (ex_index, example) in enumerate(examples):
         token_ids = []
         tokens = word_tokenize(example.text_a)
-        if len(tokens) > max_seq_length:
+        if len(tokens) > max_seq_length: # TODO : just verify with the master version whether this line is ocrrect or not ?
             tokens = tokens[:max_seq_length]
         for token in tokens:
             if token not in w2i:
@@ -211,6 +211,41 @@ def convert_examples_to_features_disc_train(examples, label_list, max_seq_length
                 index += 1
             token_ids.append(w2i[token])
         token_ids += [0] * (max_seq_length - len(token_ids))
+        label_id = label_map[example.label]
+
+        if ex_index < 2:
+            logger.info("*** Example ***")
+            logger.info("tokens: %s" % " ".join([str(x) for x in tokens]))
+            logger.info("token_ids: %s" % " ".join([str(x) for x in token_ids]))
+
+        features.append(
+            InputFeatures_disc_train(token_ids=token_ids,
+                                     label_id=label_id))
+    return features, w2i, i2w, index
+
+def convert_examples_to_features_gan2vec(examples, label_list, max_seq_length, tokenizer, w2i={}, i2w={}, index=1):
+    """Loads a data file into a list of `InputBatch`s."""
+
+    label_map = {label: i for i, label in enumerate(label_list)}
+    features = []
+    for (ex_index, example) in enumerate(examples):
+        token_ids = []
+        tokens = word_tokenize(example.text_a)
+        #print("length of tokens: ", len(tokens))
+        if len(tokens) > max_seq_length: # TODO : Might need to change it back, used it for Gan2vec and RobGAN
+            tokens = tokens[:max_seq_length]
+        # TODO : Padding for sentences less than max_sequence_length
+        # if len(tokens) < max_seq_length:
+        #     tokens = tokens + tokens
+        #print("length of tokens: after max_seq_length: ", len(tokens))
+        for token in tokens:
+            if token not in w2i:
+                w2i[token] = index
+                i2w[index] = token
+                index += 1
+            token_ids.append(w2i[token])
+        token_ids += [0] * (max_seq_length - len(token_ids))
+        #print("length of token_ids: ", len(token_ids))
         label_id = label_map[example.label]
 
         if ex_index < 2:
@@ -664,6 +699,113 @@ def convert_examples_to_features_flaw_attacks(examples, max_seq_length, max_ngra
 
     return features, all_flaw_tokens, all_token_idx, all_truth_tokens
 
+def convert_examples_to_features_flaw_attacks_gr(examples, max_seq_length, max_ngram_length, i2w,tokenizer=None, embeddings=None,
+                                      emb_index=None, words=None):
+    """Loads a data file into a list of `InputBatch`s."""
+
+    features = []
+    all_flaw_tokens = []
+    all_token_idx = []
+    all_truth_tokens = []
+    all_flaw_labels_truth = []
+
+
+    for (ex_index, example) in enumerate(examples):
+
+        tokens = example
+
+        flaw_labels = []
+        flaw_labels_truth = []
+        flaw_pieces = []
+        token_ids_seq = []
+        flaw_tokens_seq = []
+        truth_tokens_seq = []
+        print("length of the tokens: ", len(tokens))
+        tokens_print = [tok for tok in tokens]
+        print("tokens : ", tokens_print)
+        for idx, tok_id in enumerate(tokens):
+
+            #print("tok_id : ",tok_id)
+
+            # TODO : Important, critical addition to the code : adding new words ( common words such as 'the' , 'is' , 'a' etc..)
+            #if tok_id == 0: break # Uncomment to remove the below to-do
+
+            #if tok_id == 0 or tok_id == 1 or tok_id == 359 : tok_id = np.random.choice([2,47,3,4]) # TODO : change -1
+            if tok_id == 0 or 1 or 359 : tok_id = 2  # TODO : change -1
+            #if tok_id == 1 : tok_id = np.random.choice([2]) # TODO : change -2
+
+            tok = i2w[tok_id]
+
+            #print("tok_id : ", tok_id)
+            #print("idx is {} : tok_id is {} and tok is {}".format(idx, tok_id,tok))
+
+            truth_tokens_seq.append(tok)
+
+            label, tok_flaw = random_attack(tok, embeddings, emb_index, words)  # embeddings
+            word_pieces = tokenizer.tokenize(tok_flaw)
+            #word_pieces = word_tokenize(tok_flaw)
+
+            print("idx is {} : tok_id = {} : tok = {} : tok_flaw = {} : label = {} ".format(idx, tok_id, tok, tok_flaw,
+                                                                                            label))
+
+            flaw_labels += [label] * len(word_pieces)
+            flaw_pieces += word_pieces
+
+            #print("label: ", label)
+            flaw_tokens_seq.append(tok_flaw)
+            if label == 1:
+                token_ids_seq.append(int(idx))
+                flaw_label_word = 1
+                flaw_labels_truth.append(flaw_label_word)
+            else:
+                non_flaw_word = 0
+                flaw_labels_truth.append(non_flaw_word)
+           # token_ids_seq.append(idx)
+            # print("idx: ", idx)
+            # print("tok_flaw: ", tok_flaw)
+            # print("flaw_tokens_seq: ", flaw_tokens_seq)
+            # print("token_ids_seq: ", token_ids_seq)
+
+            print("word_pieces : ", word_pieces)
+            print("len of flaw_pieces: ", len(flaw_pieces))
+            if len(flaw_pieces) > max_seq_length - 2:
+                print("s") # TODO : Just include this check while running random_attacks and check whether the control comes here or not ?
+                flaw_pieces = flaw_pieces[:(max_seq_length - 2)]
+                flaw_labels = flaw_labels[:(max_seq_length - 2)]
+                #break
+
+        print("all_flaw_tokens are {} and all_truth_tokens are {}".format(len(flaw_tokens_seq),len(truth_tokens_seq)))
+        all_flaw_labels_truth.append(flaw_labels_truth)
+        all_flaw_tokens.append(flaw_tokens_seq)
+        all_token_idx.append(token_ids_seq)
+        all_truth_tokens.append(truth_tokens_seq)
+        flaw_pieces = ["[CLS]"] + flaw_pieces + ["[SEP]"]
+        flaw_labels = [0] + flaw_labels + [0]
+
+        # TODO : Why do we need flaw_ids
+        flaw_ids = tokenizer.convert_tokens_to_ids(flaw_pieces)
+        flaw_mask = [1] * len(flaw_ids)
+
+        padding = [0] * (max_seq_length - len(flaw_ids))
+        flaw_ids += padding
+        flaw_mask += padding
+        flaw_labels += padding
+
+        assert len(flaw_ids) == max_seq_length
+        assert len(flaw_mask) == max_seq_length
+        assert len(flaw_labels) == max_seq_length
+        # if (len(all_flaw_tokens) != max_seq_length):
+        #     print("all_flaw_tokens: ", all_flaw_tokens)
+        # if (len(all_truth_tokens) != max_seq_length):
+        #     print("all_truth_tokens which is less than 6: ", all_truth_tokens)
+        # #     print("all_flaw_tokens ex_index : ", ex_index)
+        #assert len(all_flaw_tokens) == max_seq_length
+
+
+        features.append(InputFeatures_flaw(flaw_ids=flaw_ids, flaw_mask=flaw_mask, flaw_labels=flaw_labels))
+
+    return features, all_flaw_tokens, all_token_idx, all_truth_tokens, all_flaw_labels_truth
+
 
 class DataProcessor(object):
     """Base class for data converters for sequence classification data sets."""
@@ -779,6 +921,13 @@ class SST2Processor(DataProcessor):
             return self._create_examples(
                 self._read_tsv(os.path.join(data_dir, "train.tsv")), "train")
 
+    def get_train_examples_for_attacks(self, data_dir, start, end):
+        """See base class."""
+        if 'tsv' in data_dir:
+            return self._create_examples_batch_adversarial_attacks(start, end, self._read_tsv(data_dir), "train")
+        else:
+            return self._create_examples_batch_adversarial_attacks(start, end, self._read_tsv(os.path.join(data_dir, "train.tsv")), "train")
+
     def get_dev_examples(self, data_dir):
         """See base class."""
         if 'tsv' in data_dir:
@@ -846,6 +995,27 @@ class SST2Processor(DataProcessor):
             examples.append(
                 InputExample(guid=guid, text_a=text_a, text_b=None, label=label, flaw_labels=flaw_labels))
         return examples
+
+
+    def _create_examples_batch_adversarial_attacks(self, start, end , lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        i = int(start)
+        for line_idx in range(end-start):
+        #for (i, line) in enumerate(lines):
+            flaw_labels = None
+            #if i == 0:
+            #    continue
+            guid = "%s-%s" % (set_type, i)
+            text_a = lines[line_idx][0]
+            label = lines[line_idx][1]
+            if len(lines[line_idx]) > 2: flaw_labels = lines[line_idx][2]
+            examples.append(
+                InputExample(guid=guid, text_a=text_a, text_b=None, label=label, flaw_labels=flaw_labels))
+        return examples
+
+
+
 
     def create_examples_for_attacks(self, lines):
         "Create examples for attacks"

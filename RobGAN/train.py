@@ -160,9 +160,9 @@ def train():
                 v_y_fake = Variable(y_fake)
                 v_x_fake = gen(vz, y=v_y_fake)
                 v_x_fake_adv = v_x_fake
-                d_fake_bin, d_fake_multi = dis(v_x_fake_adv)
+                d_fake_bin, d_fake_multi = dis(v_x_fake_adv) # TODO : Need to understand
                 ones.data.resize_as_(d_fake_bin.data)
-                loss_g = Lg(d_fake_bin, ones, d_fake_multi, v_y_fake, lam=0.5)
+                loss_g = Lg(d_fake_bin, ones, d_fake_multi, v_y_fake, lam=0.5) # TODO : Need to understand
                 loss_g.backward()
                 opt_g.step()
                 print(f'[{epoch}/{opt.max_epoch-1}][{count+1}/{len(train_loader)}][G_ITER] loss_g: {loss_g.item()}')
@@ -174,14 +174,14 @@ def train():
             # find adversarial example
             ones.data.resize_(y_real.size())
             v_x_real_adv = attack_Linf_PGD(v_x_real, ones, v_y_real, dis, Ld, opt.adv_steps, opt.epsilon)
-            d_real_bin, d_real_multi = dis(v_x_real_adv)
+            d_real_bin, d_real_multi = dis(v_x_real_adv) # TODO : Need to understand
             # accuracy for real images
             positive = torch.sum(d_real_bin.data > 0).item()
             _, idx = torch.max(d_real_multi.data, dim=1)
             correct_real = torch.sum(idx.eq(y_real)).item()
             total_real = y_real.numel()
             # loss for real images
-            loss_d_real = Ld(d_real_bin, ones, d_real_multi, v_y_real, lam=0.5)
+            loss_d_real = Ld(d_real_bin, ones, d_real_multi, v_y_real, lam=0.5) # TODO : Need to understand
             # feed fake data
             z.normal_(0, 1)
             y_fake.random_(0, to=opt.nclass)

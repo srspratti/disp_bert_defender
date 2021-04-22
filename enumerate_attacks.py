@@ -68,11 +68,13 @@ if __name__ == '__main__':
         print('--usage ./generate_char_attacks.py data_dir type times\nTypes: {}'.format(', '.join(types)), file=sys.stderr)
         sys.exit(0)
 
-    is_SST = 'SST' in sys.argv[1]
-    input_file = sys.argv[1] + '/test.csv'
-    if is_SST:
-        input_file = sys.argv[1] + '/dev.tsv'
+    # is_SST = 'SST' in sys.argv[1]
+    # input_file = sys.argv[1] + '/test.csv'
+    # if is_SST:
+    #     input_file = sys.argv[1] + '/dev.tsv'
 
+    # TODO : changed the path
+    input_file = sys.argv[1] + 'dev_attacks.tsv'
     attack_type = sys.argv[2]
     times = int(sys.argv[3])
 
