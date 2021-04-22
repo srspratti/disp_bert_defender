@@ -301,7 +301,8 @@ def main():
         #gensim.models.KeyedVectors.load_word2vec_format
         #encoder = gensim.models.wrappers.fasttext.FastTextKeyedVectors.load_word2vec_format(args.word_embedding_file)
         #encoder = gensim.models.KeyedVectors.load_word2vec_format(args.word_embedding_file)
-        encoder = Word2Vec(text_new, min_count=1, size = 128)
+        #encoder = Word2Vec(text_new, min_count=1, size = 128)
+        encoder = FastText(text_new, min_count=1, size=128)
         # print("encoder: ", encoder)
         # print("text_new : ", text_new)
         # print("text_new type : ", type(text_new))
@@ -578,6 +579,7 @@ def main():
 
         return rep, word
 
+    """
     def get_line_representation(line):
         rep = []
         #modified_words = []
@@ -592,7 +594,7 @@ def main():
             #modified_words.append(new_word)
         print("rep length expected : exp: len(line) == len(rep) ", len(rep))
         return rep
-    """
+    
     def create_vocab(data_dir,text, background_train=False, cv_path=""):
 
         #train_examples = get_train_examples(data_dir)
@@ -918,7 +920,7 @@ def main():
         torch.save(D, 'Discriminator.model')
         torch.save(G, 'generator.model')
 
-    def adversarial_attacks(start , end):
+    def adversarial_attacks(start , end, encoder):
 
         # ........code here................
 
@@ -1002,6 +1004,32 @@ def main():
         batch_tx = []
         BATCH_SEQ_LEN = []
         Xtype = torch.FloatTensor
+        # for line in all_batch_flaw_tokens:
+        #     print("line: length : SBPLSHP : before:  ", len(line))
+        #     SEQ_LEN = len(line.split())
+        #     line = line.lower()
+        #     print("line: length : SBPLSHP : after: ", len(line))
+        #     # TODO - mscll. : Create a separate GAN2vec and RobGAN Utils
+        #
+        #     X = get_line_representation(line)
+        #     #tx = Variable(torch.from_numpy(np.array([X]))).type(Xtype)
+        #
+        #     # batch_tx.append(tx)
+        #     batch_tx.append(X)
+        #     print("X Length ", len(X))
+        #
+        #
+        #
+        #     BATCH_SEQ_LEN.append(SEQ_LEN)
+        #     # print("X :", type(X))
+        #     # print("tx :", type(tx))
+        #
+        # # print("batch_tx : ", len(batch_tx))
+        # # print("BATCH_SEQ_LEN : ", BATCH_SEQ_LEN)
+        # print("BATCH_SEQ_LEN : ", BATCH_SEQ_LEN)
+        # X_t = torch.tensor(batch_tx, dtype=torch.float)
+        # # packed_input = pack_padded_sequence(tx, [SEQ_LEN], batch_first=True)
+        # # print("X_t = torch.tensor(batch_tx, dtype=torch.float) shape: ",X_t.shape)
         for line in all_batch_flaw_tokens:
             print("line: length : SBPLSHP : before:  ", len(line))
             SEQ_LEN = len(line.split())
@@ -1009,8 +1037,8 @@ def main():
             print("line: length : SBPLSHP : after: ", len(line))
             # TODO - mscll. : Create a separate GAN2vec and RobGAN Utils
 
-            X = get_line_representation(line)
-            tx = Variable(torch.from_numpy(np.array([X]))).type(Xtype)
+            X = get_target_representation(line, encoder)
+            #tx = Variable(torch.from_numpy(np.array([X]))).type(Xtype)
 
             # batch_tx.append(tx)
             batch_tx.append(X)
@@ -1026,12 +1054,20 @@ def main():
         # print("BATCH_SEQ_LEN : ", BATCH_SEQ_LEN)
         print("BATCH_SEQ_LEN : ", BATCH_SEQ_LEN)
         X_t = torch.tensor(batch_tx, dtype=torch.float)
+        print("X_t shape: ", X_t.shape)
         # packed_input = pack_padded_sequence(tx, [SEQ_LEN], batch_first=True)
         # print("X_t = torch.tensor(batch_tx, dtype=torch.float) shape: ",X_t.shape)
         real_adv = pack_padded_sequence(X_t, BATCH_SEQ_LEN, batch_first=True)
+        all_batch_flaw_labels_truth_t = torch.tensor(all_batch_flaw_labels_truth, dtype=torch.long)
 
+        print("all_batch_flaw_labels_truth len : ", len(all_batch_flaw_labels_truth))
+        print("all_batch_flaw_labels_truth 0 element len : ", len(all_batch_flaw_labels_truth[0]))
+        print("all_batch_flaw_labels_truth 0 element value : ", all_batch_flaw_labels_truth[0])
+        #print("all_batch_flaw_labels_truth 0 element len : ", all_batch_flaw_labels_truth[0])
+        all_batch_flaw_labels_truth_t_s = torch.squeeze(all_batch_flaw_labels_truth_t)
         # flaw_ids_or_flaw_labels
-        return real_adv, all_flaw_labels_truth
+        #return real_adv, all_flaw_labels_truth
+        return X_t, all_batch_flaw_labels_truth_t_s
 
     def get_loss():
         return loss_nll, loss_nll
@@ -1040,6 +1076,7 @@ def main():
         text, text_orig, encoder, labels = get_data()
         num_samples = len(text)
         create_vocab(args.data_dir,text_orig)
+        #batch_size = batch_size
 
 
         # get_data()
@@ -1070,24 +1107,27 @@ def main():
         max_seq_len = args.max_seq_length
         for e in range(epochs):
             i = 0
+
             while batch_size * i < num_samples:
                 stime = time.time()
 
                 start = batch_size * i
                 end = min(batch_size * (i + 1), num_samples)
                 bs = end - start
-
+                print("num_samples : ", num_samples)
+                print("In epoch {} iteration {} & batch size {} ".format(e, i, bs))
                 # Fixed labels
                 # TODO : Just testing on seq_length 6 momentarily. Need to change it to max_seq_length
                 test_seq_length = 6
                 # zeros = Variable(torch.FloatTensor(batch_size).fill_(0).cuda())
                 # ones = Variable(torch.FloatTensor(batch_size).fill_(1).cuda())
-                zeros = torch.zeros(batch_size, test_seq_length, dtype=torch.long)
-                ones = torch.ones(batch_size, test_seq_length, dtype=torch.long)
+                # zeros = torch.zeros(batch_size, test_seq_length, dtype=torch.long)
+                # ones = torch.ones(batch_size, test_seq_length, dtype=torch.long)
+                zeros = torch.zeros(bs, test_seq_length, dtype=torch.long)
+                ones = torch.ones(bs, test_seq_length, dtype=torch.long)
 
 
-
-                # Use lable smoothing
+                # Use lable smoothing # TODO : Test if this impacts the loss or not ?
                 tl = torch.full((bs, 1), 0.9)
                 fl = torch.full((bs, 1), 0.1)
 
@@ -1104,12 +1144,12 @@ def main():
 
                     # GAN fooling ability
                     fake = G(greal)
-                    # print("type of fake : ", type(fake))
-                    # print("Shape of fake : ", fake.shape)
-                    # print("type of real :", type(real))
-                    # #print("Shape of real :", real.shape)
-                    # print("type of greal :", type(greal))
-                    # print("Shape of greal :", greal.shape)
+                    print("type of fake : ", type(fake))
+                    print("Shape of fake : ", fake.shape)
+                    print("type of real :", type(real))
+                    #print("Shape of real :", real.shape)
+                    print("type of greal :", type(greal))
+                    print("Shape of greal :", greal.shape)
                     #TODO - 1[test]: Modify below line
                     d_fake_bin, d_fake_multi=D(fake) # TODO - 1 : Need to change the Discriminator to return multiple tensors
                     #g_loss = loss(D(fake), tl)
@@ -1152,12 +1192,31 @@ def main():
                 # to-do In Case if we want to use a separate loss function for the Adv. generation
                 # Adversarial attack
                 # TODO - 2-a : adversarial attacks def :
-                real_adv, flaw_ids_or_flow_labels = adversarial_attacks(start, end)  # flaw_ids or flaw_labels need to figure out
+                real_adv, flaw_labels = adversarial_attacks(start, end, encoder)  # flaw_ids or flaw_labels need to figure out
                 #real_adv, flaw_ids_or_flow_labels = adversarial_attacks() #flaw_ids or flaw_labels need to figure out
                     # real_adv are packed_sequence should be similar to real
                 # TODO - 1 [test] : Need to understand whether we need *multi outputs from D() change to *multi[0]
                 d_adv_bin, d_adv_multi = D(real_adv) # to-do : to use this .....April 13th
-                d_adv_loss = loss(d_adv_bin, tl, d_adv_multi, flaw_ids_or_flow_labels, lam=0.5)
+
+                print("d_fake_bin type : ", type(d_fake_bin))
+                print("d_fake_bin shape : ", d_fake_bin.shape)
+                print("d_fake_multi type : ", type(d_fake_multi))
+                print("d_fake_multi shape : ", d_fake_multi.shape)
+                print("d_fake_multi value : ", d_fake_multi[0, :, :])
+
+                print("zeros shape : ", zeros.shape)
+                print("zeros type : ", type(zeros))
+
+                print("d_adv_bin type : ", type(d_adv_bin))
+                print("d_adv_bin shape : ", d_adv_bin.shape)
+                print("d_adv_multi type : ", type(d_adv_multi))
+                print("d_adv_multi shape : ", d_adv_multi.shape)
+                print("d_adv_multi value : ", d_adv_multi[0, :, :])
+
+                print("flaw_labels : ", flaw_labels.shape)
+                print("flaw_labels : ", type(flaw_labels))
+
+                d_adv_loss = loss_nll(d_adv_bin, tl, d_adv_multi, flaw_labels, lam=0.5)
 
                 # to-do : 1. Total Discriminator Losses = Real loss + Adv Loss + Fake Loss
                 #d_loss_total =  d_r_loss + d_f_loss + d_adv_loss
@@ -1176,7 +1235,7 @@ def main():
         torch.save(G, 'generator.model')
 
     if sample_task == 'developing':
-        train(100, batch_size=256)
+        train(5, batch_size=256)
 
 if __name__ == '__main__':
     main()

@@ -111,8 +111,9 @@ def convert_vocab_dicts_bg(wi, iw, cv):
     return
 
 
-def get_target_representation(line):
-    return [w2i[word] for word in line.split()]
+def get_target_representation(line, encoder):
+    #print("w2i: ", encoder['the'])
+    return [encoder[word] for word in line.split()]
 
 def pad_input_sequence(X, max_len):
     assert (len(X) <= max_len)
@@ -156,6 +157,12 @@ def get_batched_input_data(lines, batch_size, rep_list=['swap'], probs=[1.0]):
 
         output.append((input_lines, modified_lines, np.array(X), np.array(y), lens))
     return output
+
+def get_target_representation_old(line):
+    return [w2i[word] for word in line.split()]
+
+def get_vector_representation(word):
+    return w2i[word]
 
 def get_line_representation(line):
     rep = []

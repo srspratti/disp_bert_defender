@@ -162,7 +162,7 @@ class Generator(nn.Module):
 
 
 class Discriminator(nn.Module):
-    def __init__(self, embed_size,char_vocab_size, encoder, hidden_size=64,max_seq_length=128):
+    def __init__(self, embed_size,char_vocab_size, encoder, hidden_size=50,max_seq_length=6):
         super(Discriminator, self).__init__()
 
         self.embed_size = embed_size
@@ -187,14 +187,14 @@ class Discriminator(nn.Module):
         #self.linear_adv = nn.Linear(2 * hdim, output_dim)
         # to-do : Can we have 2 deciders in nn ?
         # TODO : Test it while commenting the below block
-        self.recurrent = nn.Sequential(
-            nn.LSTM(
-                embed_size,
-                hidden_size,
-                num_layers=3,
-                batch_first=True
-            ),
-        )
+        # self.recurrent = nn.Sequential(
+        #     nn.LSTM(
+        #         embed_size,
+        #         hidden_size,
+        #         num_layers=3,
+        #         batch_first=True
+        #     ),
+        # )
 
         # TODO - 2-b : char_vocab_size , hdim and output_dim
         #char_vocab_size=CHAR_VOCAB
