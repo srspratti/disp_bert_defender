@@ -13,6 +13,7 @@ import pprint
 import io
 import torch
 import hnswlib
+from enumerate_attacks import *
 
 # copy-test
 
@@ -698,6 +699,83 @@ def convert_examples_to_features_flaw_attacks(examples, max_seq_length, max_ngra
         features.append(InputFeatures_flaw(flaw_ids=flaw_ids, flaw_mask=flaw_mask, flaw_labels=flaw_labels))
 
     return features, all_flaw_tokens, all_token_idx, all_truth_tokens
+
+def convert_examples_to_features_flaw_attacks_disp(examples, max_seq_length, max_ngram_length, tokenizer, i2w,attack_type, embeddings=None,
+                                      emb_index=None, words=None):
+    """Loads a data file into a list of `InputBatch`s."""
+
+    features = []
+    all_flaw_tokens = []
+    all_token_idx = []
+    all_truth_tokens = []
+
+
+    for (ex_index, example) in enumerate(examples):
+
+        tokens = example
+
+        flaw_labels = []
+        flaw_pieces = []
+        token_ids_seq = []
+        flaw_tokens_seq = []
+        truth_tokens_seq = []
+
+        for idx, tok_id in enumerate(tokens):
+
+            # print("tok_id : ",tok_id)
+
+            if tok_id == 0: break
+
+            tok = i2w[tok_id]
+
+            truth_tokens_seq.append(tok)
+
+            #label, tok_flaw = random_attack(tok, embeddings, emb_index, words)
+            label, tok_flaw = valid_for_attack(text, attack_type)
+            word_pieces = tokenizer.tokenize(tok_flaw)
+
+            flaw_labels += [label] * len(word_pieces)
+            flaw_pieces += word_pieces
+
+            #print("label: ", label)
+            flaw_tokens_seq.append(tok_flaw)
+            if label == 1:
+                token_ids_seq.append(int(idx))
+           # token_ids_seq.append(idx)
+            # print("idx: ", idx)
+            # print("tok_flaw: ", tok_flaw)
+            # print("flaw_tokens_seq: ", flaw_tokens_seq)
+            # print("token_ids_seq: ", token_ids_seq)
+
+            if len(flaw_pieces) > max_seq_length - 2:
+                flaw_pieces = flaw_pieces[:(max_seq_length - 2)]
+                flaw_labels = flaw_labels[:(max_seq_length - 2)]
+                break
+
+        all_flaw_tokens.append(flaw_tokens_seq)
+        all_token_idx.append(token_ids_seq)
+        all_truth_tokens.append(truth_tokens_seq)
+        flaw_pieces = ["[CLS]"] + flaw_pieces + ["[SEP]"]
+        flaw_labels = [0] + flaw_labels + [0]
+
+        flaw_ids = tokenizer.convert_tokens_to_ids(flaw_pieces)
+        flaw_mask = [1] * len(flaw_ids)
+
+        padding = [0] * (max_seq_length - len(flaw_ids))
+        flaw_ids += padding
+        flaw_mask += padding
+        flaw_labels += padding
+
+        assert len(flaw_ids) == max_seq_length
+        assert len(flaw_mask) == max_seq_length
+        assert len(flaw_labels) == max_seq_length
+
+        features.append(InputFeatures_flaw(flaw_ids=flaw_ids, flaw_mask=flaw_mask, flaw_labels=flaw_labels))
+
+    return features, all_flaw_tokens, all_token_idx, all_truth_tokens
+
+
+
 
 def convert_examples_to_features_flaw_attacks_gr(examples, max_seq_length, max_ngram_length, i2w,tokenizer=None, embeddings=None,
                                       emb_index=None, words=None):

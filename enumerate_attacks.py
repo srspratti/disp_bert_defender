@@ -29,6 +29,10 @@ emb_words = []
 emb_word_id = {}
 
 
+def valid_for_attack(x):
+    if attack_type == 'embed' and (x not in emb_word_id): return False
+    return (x.lower() not in forbids) and (not is_number(x)) and (len(x) >= 3)
+
 def attack(text, attack_type):
     try:
         if attack_type == 'add':
@@ -54,6 +58,40 @@ def attack(text, attack_type):
         return None
     return None
 
+def attack_disp(text, attack_type):
+    prob = np.random.random()
+    flaw_label = 0
+    if prob < 0.15:
+        try:
+            if attack_type == 'add':
+                flaw_label = 1
+                idx = random.randint(0, len(text))
+                return flaw_label, text[:idx] + random.choice(available_chars) + text[idx:]
+            elif attack_type == 'drop':
+                flaw_label = 1
+                idx = random.randint(0, len(text) - 1)
+                return flaw_label, text[:idx] + text[idx+1:]
+            elif attack_type == 'swap':
+                flaw_label = 1
+                idx = random.randint(0, len(text) - 2)
+                return flaw_label, text[:idx] + text[idx+1] + text[idx] + text[idx+2:]
+            elif attack_type == 'rand':
+                flaw_label = 1
+                return flaw_label, random.choice(wordbase)
+            elif attack_type == 'embed':
+                flaw_label = 1
+                emb = emb_index.get_items([emb_word_id[text]])
+                word_ids, _ =  emb_index.knn_query(emb, k=20)
+                candidates = [emb_words[i] for i in word_ids[0] if emb_words[i] != text and (emb_words[i] not in forbids)]
+                if len(candidates) == 0:
+                    return None
+                return flaw_label, random.choice(candidates)
+        except:
+            return flaw_label, text
+    else:
+        return flaw_label, text
+
+
 def is_number(x):
     try:
         float(x)
@@ -74,7 +112,7 @@ if __name__ == '__main__':
     #     input_file = sys.argv[1] + '/dev.tsv'
 
     # TODO : changed the path
-    input_file = sys.argv[1] + 'dev_attacks.tsv'
+    input_file = os.getcwd() + sys.argv[1] + '/dev_attacks.tsv'
     attack_type = sys.argv[2]
     times = int(sys.argv[3])
 
@@ -87,45 +125,41 @@ if __name__ == '__main__':
                 emb_word_id[emb_words[-1]] = len(emb_words) - 1
         print('Done')
 
-    output_dir = sys.argv[1] + '/{}_{}_enum/'.format(attack_type, times)
+    output_dir = os.getcwd() + sys.argv[1] + '/{}_{}_enum/'.format(attack_type, times)
     os.makedirs(output_dir, exist_ok=True)
-    output_file = output_dir + 'test.csv'
-    if is_SST:
-        output_file = output_dir + 'dev.tsv'
+    output_file = output_dir + '/disc_for_attacks_enum_attack.csv'
     with open(output_file, 'w') as wp:
         with open(output_file + '.num', 'w') as wpn:
             with open(input_file, 'r') as fp:
-                writer = csv.writer(wp, delimiter='\t' if is_SST else ',')
-                reader = csv.reader(fp, delimiter='\t' if is_SST else ',')
+                writer = csv.writer(wp, delimiter='\t')
+                reader = csv.reader(fp, delimiter='\t')
                 for line in reader:
-                    if is_SST:
-                        text, label = list(line)
-                        if text == 'sentence' and label == 'label':
-                            writer.writerow([text] + [str(label)])
-                            continue
-                    else:
-                        label, text = list(line)
+                    text, label = list(line)
+                    if text == 'sentence' and label == 'label':
+                        writer.writerow([text] + [str(label)])
+                        continue
                     tokens = word_tokenize(text)
-
-                    def valid_for_attack(x):
-                        if attack_type == 'embed' and (x not in emb_word_id): return False
-                        return  (x.lower() not in forbids) and (not is_number(x)) and (len(x) >= 3)
+                    # def valid_for_attack(x):
+                    #     if attack_type == 'embed' and (x not in emb_word_id): return False
+                    #     return  (x.lower() not in forbids) and (not is_number(x)) and (len(x) >= 3)
                     available_positions = [i for i in range(len(tokens)) if valid_for_attack(tokens[i])]
                     random.shuffle(available_positions)
                     print(10, file=wpn)
                     for i in range(10):
                         try:
                             p = available_positions[i % len(available_positions)]
+                            print("p : ", p)
                         except:
                             print(line)
                             sys.exit(0)
                         w = attack(tokens[p], attack_type)
                         attacked_pos = [str(p) if w else '-1']
+                        # TODO : Might need to change the above line based on the output
+                        #attacked_pos = [str(p) if w else '-1']
                         if w == None:
                             w = tokens[p]
                         new_tokens = [w if j == p else tokens[j] for j in range(len(tokens))]
                         new_text = ' '.join(new_tokens)
-                        if is_SST:
-                            writer.writerow([new_text] + [str(label)] + [','.join(attacked_pos)])
-                        else:
-                            writer.writerow([str(label)] + [new_text] + [','.join(attacked_pos)])
+                        attacked_pos_lst = ','.join(attacked_pos)
+                        writer.writerow([new_text] + [str(label)] + [','.join(attacked_pos)])
+                        print("new_text is {} label is {} and attacked_pos is {} ".format(new_text,str(label), attacked_pos_lst))
