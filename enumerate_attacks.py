@@ -29,7 +29,12 @@ emb_words = []
 emb_word_id = {}
 
 
-def valid_for_attack(x):
+#
+# def valid_for_attack(x):
+#     if attack_type == 'embed' and (x not in emb_word_id): return False
+#     return (x.lower() not in forbids) and (not is_number(x)) and (len(x) >= 3)
+
+def valid_for_attack(x, attack_type):
     if attack_type == 'embed' and (x not in emb_word_id): return False
     return (x.lower() not in forbids) and (not is_number(x)) and (len(x) >= 3)
 
@@ -91,6 +96,11 @@ def attack_disp(text, attack_type):
     else:
         return flaw_label, text
 
+def valid_disp_attack(word, attack_type):
+    if valid_for_attack(word, attack_type):
+        return attack_disp(word, attack_type)
+    else:
+        return 0, word
 
 def is_number(x):
     try:

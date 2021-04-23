@@ -313,7 +313,11 @@ def main():
 
     # examples_for_attacks = None
     # w2i, i2w, vocab_size = {}, {}, 1
-    dir_path="./data/sst-2/add_1/enum_attacks_disp"
+    # if not os.path.exists('my_folder'):
+    #     os.makedirs('my_folder')
+    dir_path=os.getcwd() + "/data/sst-2/add_1/enum_attacks_disp"
+    if not os.path.exists(dir_path):
+        os.makedirs(dir_path)
     #file_name = dir_path + '/{}_{}_enum/'.format(attack_type)
     output_file = os.path.join(dir_path, "disc_enum_{}.tsv".format(attack_type)) # to-do : Need to change the directory path
     #print("output_file", output_file)

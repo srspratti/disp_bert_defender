@@ -731,7 +731,7 @@ def convert_examples_to_features_flaw_attacks_disp(examples, max_seq_length, max
             truth_tokens_seq.append(tok)
 
             #label, tok_flaw = random_attack(tok, embeddings, emb_index, words)
-            label, tok_flaw = valid_for_attack(text, attack_type)
+            label, tok_flaw = valid_disp_attack(tok, attack_type)
             word_pieces = tokenizer.tokenize(tok_flaw)
 
             flaw_labels += [label] * len(word_pieces)
