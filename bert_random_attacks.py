@@ -314,7 +314,7 @@ def main():
     flaw_ids = []
     flaw_labels = []
     
-    all_tokens=list(all_tokens.detach().cpu().numpy())
+    all_tokens=list(all_tokens.detach().cpu().numpy()) #
     all_label_id=list(all_label_id.detach().cpu().numpy())
     
     with open(output_file, "w") as csv_file:
