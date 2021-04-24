@@ -141,17 +141,21 @@ def main():
                         help="Loss scaling to improve fp16 numeric stability. Only used when fp16 set to True.\n"
                              "0 (default value): dynamic loss scaling.\n"
                              "Positive power of 2: static loss scaling value.\n")
+    parser.add_argument("-v", "--verbose", help="modify output verbosity", 
+                    action = "store_true")
     parser.add_argument('--server_ip', type=str, default='', help="Can be used for distant debugging.")
     parser.add_argument('--server_port', type=str, default='', help="Can be used for distant debugging.")
     args = parser.parse_args()
-
     if args.server_ip and args.server_port:
         # Distant debugging - see https://code.visualstudio.com/docs/python/debugging#_attach-to-a-local-script
         import ptvsd
         print("Waiting for debugger attach")
         ptvsd.enable_attach(address=(args.server_ip, args.server_port), redirect_output=True)
         ptvsd.wait_for_attach()
-    # Comment the if else block for no CUDA
+    # device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    # device = torch.device("cpu")
+    # logger.info("device: {} , distributed training: {}, 16-bits training: {}".format(
+    #     device, bool(args.local_rank != -1), args.fp16))
     if args.local_rank == -1 or args.no_cuda:
         device = torch.device("cuda" if torch.cuda.is_available() and not args.no_cuda else "cpu")
         n_gpu = torch.cuda.device_count()
@@ -161,10 +165,8 @@ def main():
         n_gpu = 1
         # Initializes the distributed backend which will take care of sychronizing nodes/GPUs
         torch.distributed.init_process_group(backend='nccl')
-    #device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    #device = torch.device("cpu") # uncomment this for no GPU
-    logger.info("device: {} , distributed training: {}, 16-bits training: {}".format(
-        device, bool(args.local_rank != -1), args.fp16))
+    logger.info("device: {} n_gpu: {}, distributed training: {}, 16-bits training: {}".format(
+        device, n_gpu, bool(args.local_rank != -1), args.fp16))
 
     if args.gradient_accumulation_steps < 1:
         raise ValueError("Invalid gradient_accumulation_steps parameter: {}, should be >= 1".format(
@@ -175,8 +177,8 @@ def main():
     random.seed(args.seed)
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
-    if n_gpu > 0: # Comment this to No GPU
-        torch.cuda.manual_seed_all(args.seed) # Comment this for No GPU
+    if n_gpu > 0:
+       torch.cuda.manual_seed_all(args.seed)
 
     if not args.do_train and not args.do_eval:
         raise ValueError("At least one of `do_train` or `do_eval` must be True.")
@@ -214,8 +216,15 @@ def main():
         logger.info("  Num steps = %d", num_train_optimization_steps)
         all_tokens = torch.tensor([f.token_ids for f in train_features], dtype=torch.long)
         all_label_id = torch.tensor([f.label_id for f in train_features], dtype=torch.long)
-
-    # load embeddings sa
+        # print("type all tokens : ", type(all_tokens))
+        # print("shape all tokens ", all_tokens.shape)
+        # print("all tokens 3rd : ", all_tokens[2])
+        # print("type of all label id: ", type(all_label_id))
+        # print("shape of all label : ", all_label_id.shape)
+        # print("all label id 1st : ", all_label_id[2])
+        # print("all label id ::: : ", all_label_id)
+        
+    # load embeddings
     if args.do_train:
         logger.info("Loading word embeddings ... ")
         emb_dict, emb_vec, vocab_list, emb_vocab_size = load_vectors(args.word_embedding_file)
@@ -240,8 +249,8 @@ def main():
             raise ImportError("Please install apex from https://www.github.com/nvidia/apex to use distributed and fp16 training.")
 
         model = DDP(model)
-    elif n_gpu > 1: # Comment this for NO GPU
-        model = torch.nn.DataParallel(model) # Comment this for NO GPU
+    elif n_gpu > 1:
+       model = torch.nn.DataParallel(model)
 
     # Prepare optimizer
     param_optimizer = list(model.named_parameters())
@@ -282,7 +291,7 @@ def main():
 
                 # module1: learn a discriminator
                 tokens = tokens.to('cpu').numpy()
-                #print("PRINTING TOKENS!!!!!!!!! ", len(tokens[0]))
+                # print("PRINTING TOKENS!!!!!!!!! ", tokens.shape)
                 train_features = convert_examples_to_features_flaw(tokens, 
                                                                    args.max_seq_length, 
                                                                    args.max_ngram_length, 
@@ -299,8 +308,8 @@ def main():
                 loss, logits = model(flaw_ids, flaw_mask, flaw_labels)
                 logits = logits.detach().cpu().numpy()
 
-                if n_gpu > 1: # Comment this for NO GPU
-                    loss = loss.mean() # Comment this for NO GPU
+                if n_gpu > 1:
+                    loss = loss.mean() 
 
                 if args.gradient_accumulation_steps > 1:
                     loss = loss / args.gradient_accumulation_steps
@@ -347,13 +356,22 @@ def main():
                     logger.info("  %s = %s", key, str(result[key]))
                     writer.write("%s = %s\n" % (key, str(result[key])))
                 writer.write('\n')
+            
+            if ind % 1 == 0:   
+                model_to_save = model.module if hasattr(model, 'module') else model
+                output_model_file = os.path.join(args.output_dir, "epoch"+str(ind)+WEIGHTS_NAME)
+                torch.save(model_to_save.state_dict(), output_model_file)
+                output_config_file = os.path.join(args.output_dir, CONFIG_NAME)
+                with open(output_config_file, 'w') as f:
+                    f.write(model_to_save.config.to_json_string())
                     
-            model_to_save = model.module if hasattr(model, 'module') else model
-            output_model_file = os.path.join(args.output_dir, "epoch"+str(ind)+WEIGHTS_NAME)
-            torch.save(model_to_save.state_dict(), output_model_file)
-            output_config_file = os.path.join(args.output_dir, CONFIG_NAME)
-            with open(output_config_file, 'w') as f:
-                f.write(model_to_save.config.to_json_string())
+        model_to_save = model.module if hasattr(model, 'module') else model
+        output_model_file = os.path.join(args.output_dir, "disc_" + WEIGHTS_NAME)
+        torch.save(model_to_save.state_dict(), output_model_file)
+        output_config_file = os.path.join(args.output_dir, CONFIG_NAME)
+        with open(output_config_file, 'w') as f:
+            f.write(model_to_save.config.to_json_string())
+                
 
     if args.do_eval and (args.local_rank == -1 or torch.distributed.get_rank() == 0): # for trouble-shooting
 
@@ -373,7 +391,6 @@ def main():
         all_flaw_ids = torch.tensor([f.flaw_ids for f in eval_features], dtype=torch.long)
         all_label_id = torch.tensor([f.label_id for f in eval_features], dtype=torch.long)
         all_chunks = torch.tensor([f.chunks for f in eval_features], dtype=torch.long)
-        #print("flaw ids in eval_features: ", all_flaw_ids)
 
         eval_data = TensorDataset(all_token_ids, all_input_ids, all_input_mask, all_flaw_ids, all_flaw_labels, all_label_id, all_chunks)
 
@@ -389,14 +406,19 @@ def main():
 
         for epoch in eval_range:
 
-            output_file = os.path.join(args.data_dir, "epoch"+str(epoch)+"disc_outputs.tsv")
+            
+            if args.single:
+                output_file = os.path.join(args.data_dir, "disc_outputs.tsv")
+            else:
+                output_file = os.path.join(args.data_dir, "epoch"+str(epoch)+"disc_outputs.tsv")
+                
             with open(output_file,"w") as csv_file:
                 writer = csv.writer(csv_file, delimiter='\t')
                 writer.writerow(["sentence", "label", "ids"])
 
             output_model_file = os.path.join(args.output_dir, "epoch"+str(epoch)+WEIGHTS_NAME)
             output_config_file = os.path.join(args.output_dir, CONFIG_NAME)
-            #print("output_model_file: ", output_model_file)
+
             config = BertConfig(output_config_file)
             model = BertForDiscriminator(config, num_labels=num_labels)
             model.load_state_dict(torch.load(output_model_file))
@@ -415,27 +437,24 @@ def main():
                 flaw_labels = flaw_labels.to(device)
                 flaw_ids = flaw_ids.to(device)
 
-                #print("flaw ids in eval_dataloader: ", flaw_ids)
-
                 with torch.no_grad():
                     tmp_eval_loss,s = model(input_ids, input_mask, flaw_labels)
-                    
-#                     print("tmp_eval_loss: ",tmp_eval_loss)
-#                     print("s: ",s)
+                    if args.verbose:
+                        print("tmp_eval_loss: ",tmp_eval_loss)
+                        print("s: ",s)
                     
                     logits = model(input_ids, input_mask)
-                    
-#                     print("len of logits: ",len(logits))
-#                     print("shape of logits: ",logits.size())
-#                     print("type of logits: ",type(logits))
-#                     print("type of logits: ",logits)
+                    if args.verbose:
+                        print("len of logits: ",len(logits))
+                        print("shape of logits: ",logits.size())
+                        print("type of logits: ",type(logits))
                     
                     flaw_logits = torch.argmax(logits, dim=2)
-                    
-                    # print("Type of flaw_logits: ",type(flaw_logits))
-                    # print("shape of flaw_logits: ",flaw_logits.size())
-                    # print("Length of flaw_logits: ",len(flaw_logits))
-                    # print("flaw_logits: ", flaw_logits)
+                    if args.verbose:    
+                        print("Type of flaw_logits: ",type(flaw_logits))
+                        print("shape of flaw_logits: ",flaw_logits.size())
+                        print("Length of flaw_logits: ",len(flaw_logits))
+                        print("flaw_logits: ", flaw_logits)
 
                 logits = logits.detach().cpu().numpy()
                 flaw_logits = flaw_logits.detach().cpu().numpy()
@@ -445,53 +464,50 @@ def main():
                 token_ids = token_ids.to('cpu').numpy()
                 
                 flaw_logits = logit_converter(flaw_logits, chunks) # each word only has one '1'
-                
-#                 print("Type of flaw_logits logit_converter: ",type(flaw_logits))
-#                 #print("shape of flaw_logits logit_converter : ",flaw_logits.size())
-#                 print("Length of flaw_logits logit_converter : ",len(flaw_logits))
-#                 print("flaw_logits logit_converter : ", flaw_logits)
+                if args.verbose:    
+                    print("Type of flaw_logits logit_converter: ",type(flaw_logits))
+                    #print("shape of flaw_logits logit_converter : ",flaw_logits.size())
+                    print("Length of flaw_logits logit_converter : ",len(flaw_logits))
+                    print("flaw_logits logit_converter : ", flaw_logits)
                 
                 true_logits = []
-                
-                #print("length of flaw_ids: ",len(flaw_ids))
+                if args.verbose:
+                    print("length of flaw_ids: ",len(flaw_ids))
                 
                 for i in range(len(flaw_ids)):
                     tmp = [0] * len(flaw_logits[i])
-                    
-                    #print("tmp: ",tmp) # ne line
-                    #print("printing i:",i)
-                    #print("len of tmp: ",len(tmp))
-                    #print("length of flaw_ids of i : ",len(flaw_ids[i]))
-                    #print("flaw_ids[i]: ",flaw_ids[i])
+                    if args.verbose:    
+                        print("tmp: ",tmp)
+                        print("len of tmp: ",len(tmp))
+                        print("length of flaw_ids of i : ",len(flaw_ids[i]))
+                        print("flaw_ids[i]: ",flaw_ids[i])
                     
                     for j in range(len(flaw_ids[0])):
-                        #print("flaw_ids[i][j] : ",flaw_ids[i][j])
-                        #print("tmp value: ", tmp)
-                        #print("tmp len: ", len(tmp))
                         if flaw_ids[i][j] == 0: break
                         if flaw_ids[i][j] >= len(tmp): continue
                         tmp[flaw_ids[i][j]] = 1
 
                     true_logits.append(tmp)
-                    #print('true_logits: ', true_logits)
 
                 tmp_eval_accuracy = accuracy_2d(flaw_logits, true_logits)
                 eval_accuracy += tmp_eval_accuracy 
 
-                #predictions += true_logits # Original
-                #truths += flaw_logits # Original
-                predictions += flaw_logits # for trouble-shooting
-                truths += true_logits # for trouble-shooting
+                predictions += true_logits # Original 
+                truths += flaw_logits # Original 
+                #predictions += flaw_logits # for trouble-shooting
+                #truths += true_logits # for trouble-shooting
                 eval_loss += tmp_eval_loss.mean().item()
                 nb_eval_examples += input_ids.size(0)
                 nb_eval_steps += 1
 
                 with open(output_file, "a") as csv_file:
                     for i in range(len(label_id)):
-                        #print("i in write output file:",i)
+                        if args.verbose:
+                            print("i in write output file:",i)
                         token = ' '.join([i2w[x] for x in token_ids[i] if x != 0])
                         flaw_logit = flaw_logits[i]
-                        #print("flaw_logit in write output file: ",flaw_logit)
+                        if args.verbose:
+                            print("flaw_logit in write output file: ",flaw_logit)
                         label = str(label_id[i])
                         logit = ','.join([str(i) for i,x in enumerate(flaw_logit) if x == 1]) # for trouble-shooting
                         logit = '-1' if logit == '' else logit # for trouble-shooting

@@ -140,6 +140,8 @@ def main():
                         help="Loss scaling to improve fp16 numeric stability. Only used when fp16 set to True.\n"
                              "0 (default value): dynamic loss scaling.\n"
                              "Positive power of 2: static loss scaling value.\n")
+    parser.add_argument("-v", "--verbose", help="modify output verbosity", 
+                    action = "store_true")
     parser.add_argument('--server_ip', type=str, default='', help="Can be used for distant debugging.")
     parser.add_argument('--server_port', type=str, default='', help="Can be used for distant debugging.")
     args = parser.parse_args()
@@ -150,12 +152,10 @@ def main():
         print("Waiting for debugger attach")
         ptvsd.enable_attach(address=(args.server_ip, args.server_port), redirect_output=True)
         ptvsd.wait_for_attach()
-    
-    #device = torch.device("cpu") # Uncomment this for NO GPU
-    #logger.info("device: {} , distributed training: {}, 16-bits training: {}".format(
-    #    device, bool(args.local_rank != -1), args.fp16)) # Uncomment this for NO GPU
-    
-    # Comment this for NO GPU
+    # device = torch.device("cpu")
+    # logger.info("device: {} , distributed training: {}, 16-bits training: {}".format(
+    #     device, bool(args.local_rank != -1), args.fp16))
+
     if args.local_rank == -1 or args.no_cuda:
         device = torch.device("cuda" if torch.cuda.is_available() and not args.no_cuda else "cpu")
         n_gpu = torch.cuda.device_count()
@@ -177,8 +177,8 @@ def main():
     random.seed(args.seed)
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
-    if n_gpu > 0: # Comment this for NO GPU
-        torch.cuda.manual_seed_all(args.seed) # Comment this for NO GPU
+    if n_gpu > 0:
+       torch.cuda.manual_seed_all(args.seed)
 
     if not args.do_train and not args.do_eval:
         raise ValueError("At least one of `do_train` or `do_eval` must be True.")
@@ -229,31 +229,28 @@ def main():
         logger.info("  Num token vocab = %d", vocab_size)
         logger.info("  Batch size = %d", args.train_batch_size)
         logger.info("  Num steps = %d", num_train_optimization_steps)
-        
-#         print("train_features: ",type(train_features))
-#         print("train_features 1st element : ",len(train_features[0].ngram_embeddings))
-#         print("train_features length: ",len(train_features))
-        
+        if args.verbose:
+            print("train_features: ",type(train_features))
+            print("train_features 1st element : ",len(train_features[0].ngram_embeddings))
+            print("train_features length: ",len(train_features))
         all_ngram_ids = torch.tensor([f.ngram_ids for f in train_features], dtype=torch.long)
         all_ngram_labels = torch.tensor([f.ngram_labels for f in train_features], dtype=torch.long)
         all_ngram_masks = torch.tensor([f.ngram_masks for f in train_features], dtype=torch.long)
-        
-        #print("Type of ngram embeddings",type([f.ngram_embeddings for f in train_features]))
-        
+        # all_ngram_embeddings = torch.tensor([f.ngram_embeddings for f in train_features], dtype=torch.float)
+        # print("Type of ngram embeddings",type([f.ngram_embeddings for f in train_features]))
         ngram_embeddings_lst=[f.ngram_embeddings for f in train_features]
-        
-#         print("args max ngram length: ",args.max_seq_length)
-#         print("length of ngram_embeddings list: ",len(ngram_embeddings_lst))
-
-        #for it in ngram_embeddings_lst:
-            #print("printing it:   ",len(it))
-            #if len(it)!=(args.max_seq_length):
-                #print("printing it: ",it)
+        if args.verbose:
+            print("args max ngram length: ",args.max_seq_length)
+            print("length of ngram_embeddings list: ",len(ngram_embeddings_lst))
+            for it in ngram_embeddings_lst:
+                print("printing it:   ",len(it))
+                if len(it)!=(args.max_seq_length):
+                    print("printing it: ",it)
         #target = [[[1,2,3], [2,4,5,6]], [[1,2,3], [2,4,5,6], [2,4,6,7,8]]]
         max_cols = max([len(row) for batch in ngram_embeddings_lst for row in batch])
-        #print("maximum no. of cols: ", max_cols)
+        # print("maximum no. of cols: ", max_cols)
         max_rows = max([len(batch) for batch in ngram_embeddings_lst])
-        #print("maximum no. of rows: ", max_rows)
+        # print("maximum no. of rows: ", max_rows)
         ngram_embeddings_padded = [batch + [[0] * (max_cols)] * (max_rows - len(batch)) for batch in ngram_embeddings_lst]
         ngram_embeddings_padded = torch.tensor([row + [0] * (max_rows - len(row)) for batch in ngram_embeddings_padded for row in batch])
         ngram_embeddings_padded = ngram_embeddings_padded.view(-1, max_rows, max_cols)
@@ -281,8 +278,8 @@ def main():
                 raise ImportError("Please install apex from https://www.github.com/nvidia/apex to use distributed and fp16 training.")
 
             model = DDP(model)
-        elif n_gpu > 1: # Comment this for NO GPU
-            model = torch.nn.DataParallel(model) # Comment this for NO GPU
+        elif n_gpu > 1:
+           model = torch.nn.DataParallel(model)
 
         # Prepare optimizer
         param_optimizer = list(model.named_parameters())
@@ -319,8 +316,8 @@ def main():
                 batch = tuple(t.to(device) for t in batch)
                 ngram_ids, ngram_labels, ngram_masks, ngram_embeddings = batch
                 loss = model(ngram_ids, ngram_masks, ngram_embeddings) 
-                if n_gpu > 1: # Comment this for NO GPU
-                    loss = loss.mean()  # Comment this for NO GPU
+                if n_gpu > 1:
+                   loss = loss.mean() 
 
                 if args.gradient_accumulation_steps > 1:
                     loss = loss / args.gradient_accumulation_steps
@@ -348,18 +345,25 @@ def main():
                     logger.info("  %s = %s", key, str(result[key]))
                     writer.write("%s = %s\n" % (key, str(result[key])))
                 writer.write('\n')
+                
+            if ind % 1 == 0:  
+                model_to_save = model.module if hasattr(model, 'module') else model
+                output_model_file = os.path.join(args.output_dir, "epoch"+str(ind)+WEIGHTS_NAME)
+                torch.save(model_to_save.state_dict(), output_model_file)
+                output_config_file = os.path.join(args.output_dir, CONFIG_NAME)
+                with open(output_config_file, 'w') as f:
+                    f.write(model_to_save.config.to_json_string())
                     
-            model_to_save = model.module if hasattr(model, 'module') else model
-            output_model_file = os.path.join(args.output_dir, "epoch"+str(ind)+WEIGHTS_NAME)
-            torch.save(model_to_save.state_dict(), output_model_file)
-            output_config_file = os.path.join(args.output_dir, CONFIG_NAME)
-            with open(output_config_file, 'w') as f:
-                f.write(model_to_save.config.to_json_string())
+        model_to_save = model.module if hasattr(model, 'module') else model
+        output_model_file = os.path.join(args.output_dir,"gen_" + WEIGHTS_NAME)
+        torch.save(model_to_save.state_dict(), output_model_file)
+        output_config_file = os.path.join(args.output_dir, CONFIG_NAME)
+        with open(output_config_file, 'w') as f:
+            f.write(model_to_save.config.to_json_string())
 
     # Load a trained model and config that you have fine-tuned
     if args.do_eval and (args.local_rank == -1 or torch.distributed.get_rank() == 0):
 
-        #eval_examples = processor.get_gnrt_dev_examples(args.data_file)
         eval_examples = processor.get_gnrt_dev_examples(args.data_dir)
         eval_features, w2i, i2w, vocab_size = convert_examples_to_features_gnrt_eval(
             eval_examples, label_list, args.max_seq_length, args.max_ngram_length, tokenizer, w2i, i2w, vocab_size)
@@ -390,7 +394,7 @@ def main():
 
         for epoch in eval_range:
 
-            output_file = os.path.join(args.data_dir, "epoch"+str(epoch)+"gnrt_outputs.tsv")
+            output_file = os.path.join(args.output_dir, "epoch"+str(epoch)+"gnrt_outputs.tsv")
             with open(output_file,"w") as csv_file:
                 writer = csv.writer(csv_file, delimiter='\t')
                 writer.writerow(["sentence", "label"])

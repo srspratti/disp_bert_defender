@@ -206,6 +206,11 @@ def main():
                         type=str,
                         help="The input directory of input data file.")
 
+    parser.add_argument("--attack_type",
+                        default='add',
+                        type=str,
+                        help="The types of attacks : add, drop, swap, rand, embed ")
+
     parser.add_argument("--max_seq_length",
                         default=128,
                         type=int,
@@ -266,6 +271,7 @@ def main():
     
     #data_dir= "./data/sst-2/dev_attacks.tsv"
     task_name = args.task_name.lower()
+    attack_type = args.attack_type.lower()
 
     if task_name not in processors:
         raise ValueError("Task not found: %s" % (task_name))
@@ -307,21 +313,25 @@ def main():
 
     # examples_for_attacks = None
     # w2i, i2w, vocab_size = {}, {}, 1
-    dir_path="./data/sst-2/add_1/"
-    #output_file = os.path.join(dir_path, "disc_for_attacks_outputs.tsv")
-    output_file = os.path.join(dir_path, "test.tsv")
+    # if not os.path.exists('my_folder'):
+    #     os.makedirs('my_folder')
+    dir_path=os.getcwd() + "/data/sst-2"
+    if not os.path.exists(dir_path):
+        os.makedirs(dir_path)
+    #file_name = dir_path + '/{}_{}_enum/'.format(attack_type)
+    output_file = os.path.join(dir_path, "disc_dev.tsv".format(attack_type)) # to-do : Need to change the directory path
     #print("output_file", output_file)
     flaw_ids = []
     flaw_labels = []
     
-    all_tokens=list(all_tokens.detach().cpu().numpy()) #
+    all_tokens=list(all_tokens.detach().cpu().numpy())
     all_label_id=list(all_label_id.detach().cpu().numpy())
     
     with open(output_file, "w") as csv_file:
         writer = csv.writer(csv_file, delimiter='\t') #
         writer.writerow(["sentence-with-flaw_tokens", "label", "flaw_ids", "ground-truth-sentence","ground-truth-token_ids","Index_Ids", "flaw_labels"])
         #writer.writerow([all_tokens[step], all_label_id[step], flaw_ids_lst, flaw_labels_lst])  # need to write the token
-        for step, batch in enumerate(tqdm(dataloader_for_attack, desc="attacks")):
+        for step, batch in enumerate(tqdm(dataloader_for_attack, desc="enumerate_attacks_disp")):
             
         
             batch = tuple(t.to(device) for t in batch)
@@ -330,8 +340,8 @@ def main():
             tokens = tokens.to('cpu').numpy() 
             
             
-            features_with_flaws, all_flaw_tokens, all_token_idx, all_truth_tokens = convert_examples_to_features_flaw_attacks(tokens,
-                                                                            args.max_seq_length, args.max_ngram_length,tokenizer, i2w,
+            features_with_flaws, all_flaw_tokens, all_token_idx, all_truth_tokens = convert_examples_to_features_flaw_attacks_disp(tokens,
+                                                                            args.max_seq_length, args.max_ngram_length,tokenizer, i2w,attack_type,
                                                                             embeddings=None, emb_index=None,words=None)
 
             all_token_idx = ",".join([str(id) for tok in all_token_idx for id in tok])
@@ -347,13 +357,10 @@ def main():
             flaw_labels_ar=flaw_labels.detach().cpu().numpy()
             flaw_labels_lst=flaw_labels.tolist()
             all_flaw_tokens = all_flaw_tokens.strip("''").strip("``")
-            print("all_flaw_tokens: ",all_flaw_tokens)
+            # print("all_flaw_tokens: ",all_flaw_tokens)
             all_truth_tokens_flat = all_truth_tokens_flat.strip("''").strip("``")
-            print("all_truth_tokens_flat: ", all_truth_tokens_flat)
+            # print("all_truth_tokens_flat: ", all_truth_tokens_flat)
             #writer.writerow(["sentence-with-flaw_tokens", "label", "flaw_ids", "ground-truth-sentence","ground-truth-token_ids","Index_Ids", "flaw_labels"])
             writer.writerow([all_flaw_tokens, all_label_id[step],  all_token_idx,all_truth_tokens_flat,all_tokens[step], flaw_ids_lst, flaw_labels_lst])
 if __name__ == "__main__":
     main()
-
-
-

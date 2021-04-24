@@ -87,7 +87,7 @@ def main():
                         type=int,
                         help="Total batch size for training.")
     parser.add_argument("--eval_batch_size",
-                        default=1,
+                        default=8,
                         type=int,
                         help="Total batch size for eval.")
     parser.add_argument("--learning_rate",
@@ -98,10 +98,6 @@ def main():
                         default=3.0,
                         type=float,
                         help="Total number of training epochs to perform.")
-    parser.add_argument("--num_eval_epochs",
-                        default=3.0,
-                        type=float,
-                        help="Total number of eval epochs to perform.")
     parser.add_argument("--warmup_proportion",
                         default=0.1,
                         type=float,
@@ -130,6 +126,8 @@ def main():
                         help="Loss scaling to improve fp16 numeric stability. Only used when fp16 set to True.\n"
                              "0 (default value): dynamic loss scaling.\n"
                              "Positive power of 2: static loss scaling value.\n")
+    parser.add_argument("-v", "--verbose", help="modify output verbosity", 
+                    action = "store_true")
     parser.add_argument('--server_ip', type=str, default='', help="Can be used for distant debugging.")
     parser.add_argument('--server_port', type=str, default='', help="Can be used for distant debugging.")
     args = parser.parse_args()
@@ -168,9 +166,8 @@ def main():
     if not args.do_train and not args.do_eval:
         raise ValueError("At least one of `do_train` or `do_eval` must be True.")
 
-    # TODO : Uncomment after troubleshooting
-    # if os.path.exists(args.output_dir) and os.listdir(args.output_dir) and args.do_train:
-    #     raise ValueError("Output directory ({}) already exists and is not empty.".format(args.output_dir))
+    if os.path.exists(args.output_dir) and os.listdir(args.output_dir) and args.do_train:
+        raise ValueError("Output directory ({}) already exists and is not empty.".format(args.output_dir))
     if not os.path.exists(args.output_dir):
         os.makedirs(args.output_dir)
 
@@ -318,7 +315,7 @@ def main():
                     'c2_loss': loss
                     }
 
-            output_eval_file = os.path.join(args.output_dir, "bert_classifier_train_results.txt")
+            output_eval_file = os.path.join(args.output_dir, "train_results.txt")
             with open(output_eval_file, "a") as writer:
                 #logger.info("***** Training results *****")
                 writer.write("epoch"+str(ind)+'\n')
@@ -326,16 +323,21 @@ def main():
                     logger.info("  %s = %s", key, str(result[key]))
                     writer.write("%s = %s\n" % (key, str(result[key])))
                 writer.write('\n')
-                    
-            model_to_save = model.module if hasattr(model, 'module') else model
-            output_model_file = os.path.join(args.output_dir, "epoch"+str(ind)+"_"+WEIGHTS_NAME)
-            torch.save(model_to_save.state_dict(), output_model_file)
-            output_config_file = os.path.join(args.output_dir, CONFIG_NAME)
-            with open(output_config_file, 'w') as f:
-                f.write(model_to_save.config.to_json_string())
+            if ind % 5 == 0:         
+                model_to_save = model.module if hasattr(model, 'module') else model
+                output_model_file = os.path.join(args.output_dir, "epoch"+str(ind)+"_"+WEIGHTS_NAME)
+                torch.save(model_to_save.state_dict(), output_model_file)
+                output_config_file = os.path.join(args.output_dir, CONFIG_NAME)
+                with open(output_config_file, 'w') as f:
+                    f.write(model_to_save.config.to_json_string())
 
-        os.rename(output_model_file, os.path.join(args.output_dir, "classifier_"+WEIGHTS_NAME)) # TODO : Need to retest by running again
 
+        model_to_save = model.module if hasattr(model, 'module') else model
+        output_model_file = os.path.join(args.output_dir, "class_"+WEIGHTS_NAME)
+        torch.save(model_to_save.state_dict(), output_model_file)
+        output_config_file = os.path.join(args.output_dir, CONFIG_NAME)
+        with open(output_config_file, 'w') as f:
+            f.write(model_to_save.config.to_json_string())
 
     # Save a trained model and the associated configuration
     #model_to_save = model.module if hasattr(model, 'module') else model  # Only save the model it-self
@@ -344,25 +346,20 @@ def main():
 
 
     # Load a trained model and config that you have fine-tuned
-    #output_model_file = os.path.join(args.output_dir, "epoch"+str(ind)+"_"+WEIGHTS_NAME)
-
-    # output_model_file = os.path.join(args.output_dir, "epoch" + str(ind) + WEIGHTS_NAME)
-    # output_config_file = os.path.join(args.output_dir, CONFIG_NAME)
-    # config = BertConfig(output_config_file)
-    # model = BertForClassifier(config, num_labels=num_labels)
-    # model.load_state_dict(torch.load(output_model_file))
+    output_model_file = os.path.join(args.output_dir, "epoch"+str(ind)+"_"+WEIGHTS_NAME)
+    output_config_file = os.path.join(args.output_dir, CONFIG_NAME)
+    config = BertConfig(output_config_file)
+    model = BertForClassifier(config, num_labels=num_labels)
+    model.load_state_dict(torch.load(output_model_file))
 
 
     if args.do_eval and (args.local_rank == -1 or torch.distributed.get_rank() == 0):
-
         eval_examples = processor.get_dev_examples(args.data_dir)
         eval_features = convert_examples_to_features(
             eval_examples, label_list, args.max_seq_length, tokenizer)
-
         logger.info("***** Running evaluation *****")
         logger.info("  Num examples = %d", len(eval_examples))
         logger.info("  Batch size = %d", args.eval_batch_size)
-
         all_input_ids = torch.tensor([f.input_ids for f in eval_features], dtype=torch.long)
         all_input_mask = torch.tensor([f.input_mask for f in eval_features], dtype=torch.long)
         all_segment_ids = torch.tensor([f.segment_ids for f in eval_features], dtype=torch.long)
@@ -374,75 +371,25 @@ def main():
 
         # Run prediction for full data
         eval_sampler = SequentialSampler(eval_data)
-        #eval_dataloader = DataLoader(eval_data, sampler=eval_sampler, batch_size=args.eval_batch_size)
         eval_dataloader = DataLoader(eval_data, sampler=eval_sampler, batch_size=args.eval_batch_size)
 
-        print("type of eval_dataloader: ", type(eval_dataloader))
-
-        output_model_file = os.path.join(args.output_dir, "classifier_" + WEIGHTS_NAME)
-        output_config_file = os.path.join(args.output_dir, CONFIG_NAME)
-        print("output_model_file: ", output_model_file)
-        config = BertConfig(output_config_file)
-        model = BertForClassifier(config, num_labels=num_labels)
-        model.load_state_dict(torch.load(output_model_file))
-
-        # output_config_file = os.path.join(args.output_dir, CONFIG_NAME)
-        # config = BertConfig(output_config_file)
-        # model = BertForClassifier(config, num_labels=num_labels)
-        # model.load_state_dict(torch.load(output_model_file))
-
-        model.to(device)
         model.eval()
         eval_loss, eval_accuracy = 0, 0
         nb_eval_steps, nb_eval_examples = 0, 0
-
-        for step, batch in enumerate(tqdm(eval_dataloader, desc="Evaluating- Iteration")):
-
-        #for input_ids, input_mask, segment_ids, label_ids in tqdm(eval_dataloader, desc="Evaluating"):
-            batch = tuple(t.to(device) for t in batch)
-            print("batch : ", type(batch))
-            #print("batch : ", type(batch))
-            #print("batch : ", type(batch))
-            input_ids, input_mask, segment_ids, label_ids = batch
-
-            # print("len of input_ids: ", len(input_ids))
-            # print("shape of input_ids: ", input_ids.size())
-            # print("len of input_mask: ", len(input_mask))
-            # print("shape of input_mask: ", input_mask.size())
-            # print("len of segment_ids: ", len(segment_ids))
-            # print("shape of segment_ids: ", segment_ids.size())
-            # print("len of label_ids: ", len(label_ids))
-            # print("label_ids: ", label_ids)
-            # print("shape of label_ids: ", label_ids.size())
-            # print("========================================= after to.device")
-            #
-            # input_ids = input_ids.to(device)
-            # input_mask = input_mask.to(device)
-            # segment_ids = segment_ids.to(device)
-            # label_ids = label_ids.to(device)
-
-            print("len of input_ids: ", len(input_ids))
-            print("shape of input_ids: ",input_ids.size())
-            print("len of input_mask: ", len(input_mask))
-            print("shape of input_mask: ",input_mask.size())
-            print("len of segment_ids: ", len(segment_ids))
-            print("shape of segment_ids: ",segment_ids.size())
-            print("len of label_ids: ", len(label_ids))
-            print("label_ids: ", label_ids)
-            print("shape of label_ids: ",label_ids.size())
+ 
+        for input_ids, input_mask, segment_ids, label_ids in tqdm(eval_dataloader, desc="Evaluating"):
+                
+            input_ids = input_ids.to(device)
+            input_mask = input_mask.to(device)
+            segment_ids = segment_ids.to(device)
+            label_ids = label_ids.to(device)            
 
             with torch.no_grad():
-                #tmp_eval_loss,_ = model(input_ids, segment_ids, input_mask, label_ids)
-                tmp_eval_loss,_ = model(input_ids, attention_mask=input_mask, labels = label_ids, token_type_ids = segment_ids)
-                logits = model(input_ids, attention_mask=input_mask, token_type_ids=segment_ids)
+                tmp_eval_loss,_ = model(input_ids, segment_ids, input_mask, label_ids)
+                logits = model(input_ids, segment_ids, input_mask)
 
-            #tmp_eval_loss, _ = model(input_ids, segment_ids, input_mask, label_ids)
             logits = logits.detach().cpu().numpy()
-            label_ids = label_ids.detach().cpu().numpy()
-
-            # logits = logits.to('cpu').numpy()
-            # label_ids = label_ids.to('cpu').numpy()
-
+            label_ids = label_ids.to('cpu').numpy()
             tmp_eval_accuracy = accuracy(logits, label_ids)
 
             eval_loss += tmp_eval_loss.mean().item()
@@ -459,7 +406,7 @@ def main():
                   'global_step': global_step,
                   'loss': loss}
 
-        output_eval_file = os.path.join(args.output_dir, "classifier_eval_results.txt")
+        output_eval_file = os.path.join(args.output_dir, "eval_results.txt")
         with open(output_eval_file, "w") as writer:
             logger.info("***** Eval results *****")
             for key in sorted(result.keys()):

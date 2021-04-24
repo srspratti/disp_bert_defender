@@ -260,13 +260,6 @@ class BertEmbeddings(nn.Module):
         position_embeddings = self.position_embeddings(position_ids)
         token_type_embeddings = self.token_type_embeddings(token_type_ids)
 
-        # TODO : To comment after working....
-        print("start....")
-        print("shape of word_embeddings : ",words_embeddings.shape)
-        print("shape of token_type_embeddings : ", token_type_embeddings.shape)
-        print("shape of position_embeddings : ", position_embeddings.shape)
-        print("end....")
-
         embeddings = words_embeddings + position_embeddings + token_type_embeddings
         embeddings = self.LayerNorm(embeddings)
         embeddings = self.dropout(embeddings)
@@ -1228,7 +1221,7 @@ class BertForDiscriminator(BertPreTrainedModel):
 
         # discriminator loss
         # sequence_output_flaw: (batch_size, sequence_length, hidden_size)
-        #print("input_ids_flaw:{}".format(input_ids_flaw[0]))
+        # print("input_ids_flaw:{}".format(input_ids_flaw[0]))
 
         sequence_output_flaw, _ = self.bert(input_ids_flaw, None, attention_mask,
                                        output_all_encoded_layers=False) 
@@ -1305,12 +1298,6 @@ class BertForClassifier(BertPreTrainedModel):
         self.apply(self.init_bert_weights)
 
     def forward(self, input_ids, attention_mask=None, labels=None, token_type_ids=None,):
-        print("shape of input id's : ", input_ids.shape)
-        print("shape of token_type_ids : ", token_type_ids.shape)
-        try :
-            print("shape of labels : ", labels.shape)
-        except:
-            print("no labels passed:")
         _, pooled_output = self.bert(input_ids, token_type_ids, attention_mask, output_all_encoded_layers=False)
         pooled_output = self.dropout(pooled_output)
         logits = self.classifier(pooled_output)
@@ -1321,3 +1308,4 @@ class BertForClassifier(BertPreTrainedModel):
             return loss, logits
         else:
             return logits
+        
