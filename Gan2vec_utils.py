@@ -20,6 +20,7 @@ from torch.utils.data import (DataLoader, RandomSampler, SequentialSampler,
                               TensorDataset)
 from gensim.models import Word2Vec
 from gensim.models import FastText
+from tqdm import tqdm, trange
 from bert_utils import *
 
 
@@ -121,7 +122,7 @@ def get_data_encoder(data_dir, label_list):
     # model = gensim.models.Word2Vec.load("modelName.model")
     return text_new, text, encoder, labels
 #adversarial_attacks_for_dis(start=rnd, end=rnd+2, encoder=encoder, text=text, processor=processor, label_list=label_list)
-def adversarial_attacks_for_dis(start , end, encoder, text, processor, label_list, data_dir): # parameters : text
+def adversarial_attacks_for_dis(start , end, encoder, text, processor, label_list, data_dir, tokenizer): # parameters : text
     # ........code here................
 
     # text_batch + labels
@@ -130,6 +131,10 @@ def adversarial_attacks_for_dis(start , end, encoder, text, processor, label_lis
     # text_a and labels
     # from train.tsv = get_train_examples(_create_examples(read_tsv)))
     #processor.get_train_examples_for_attacks(args.data_dir, start, end)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    max_seq_length = 6
+    max_ngram_length= None
+
     test_examples = processor.get_train_examples(data_dir)
     features_for_attacks, w2i_disp, i2w_disp, vocab_size = convert_examples_to_features_gan2vec(test_examples,
                                                                                                 label_list,
@@ -168,7 +173,7 @@ def adversarial_attacks_for_dis(start , end, encoder, text, processor, label_lis
         #    tokens,args.max_seq_length, args.max_ngram_length, tokenizer, i2w,embeddings = None, emb_index = None, words = None)
 
         features_with_flaws, all_flaw_tokens, all_token_idx, all_truth_tokens, all_flaw_labels_truth = convert_examples_to_features_flaw_attacks_gr(
-            tokens, args.max_seq_length, args.max_ngram_length, i2w, tokenizer, embeddings=None, emb_index=None,
+            tokens, max_seq_length, max_ngram_length, i2w, tokenizer, embeddings=None, emb_index=None,
             words=None)
 
         all_token_idx = ",".join([str(id) for tok in all_token_idx for id in tok])
@@ -485,9 +490,9 @@ def get_line_representation(line):
     rep = []
     #modified_words = []
     for word in line.split():
-        #print("word: ", word)
+        print("word: ", word)
         word_rep, _ = get_swap_word_representation(word)
-        #print("word_rep: ", word_rep)
+        print("word_rep: ", word_rep)
         new_word = word
         rep.append(word_rep)
         # modified_words.append(new_word)
