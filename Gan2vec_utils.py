@@ -8,9 +8,20 @@ from collections import defaultdict
 import numpy as np
 import pickle
 import random
+import os
+import csv
+import sys
 from random import shuffle
 import torch
 import torch.nn.functional as F
+from torch.nn.utils.rnn import pack_padded_sequence
+from torch.autograd import Variable
+from torch.utils.data import (DataLoader, RandomSampler, SequentialSampler,
+                              TensorDataset)
+from gensim.models import Word2Vec
+from gensim.models import FastText
+from bert_utils import *
+
 
 CHAR_VOCAB = []
 CHAR_VOCAB_BG = []
@@ -27,12 +38,318 @@ INPUT_PAD_IDX = 0
 
 keyboard_mappings = None
 
+class InputExample(object):
+
+    def __init__(self, guid, text_a, text_b=None, label=None, flaw_labels=None):
+        self.guid = guid
+        self.text_a = text_a
+        self.text_b = text_b
+        self.label = label
+        self.flaw_labels = flaw_labels
+
 def set_word_limit(word_limit, task=""):
     global WORD_LIMIT
     global task_name
     WORD_LIMIT = word_limit
     task_name = task
 
+def _read_tsv(input_file, quotechar=None):
+    """Reads a tab separated value file."""
+    with open(input_file, "r") as f:
+        reader = csv.reader(f, delimiter="\t", quotechar=quotechar)
+        lines = []
+        for line in reader:
+            if sys.version_info[0] == 2:
+                line = list(unicode(cell, 'utf-8') for cell in line)
+            lines.append(line)
+        return lines
+
+def _create_examples(lines, set_type):
+    """Creates examples for the training and dev sets."""
+    examples = []
+    for (i, line) in enumerate(lines):
+        # print("line :", line)
+        # print("line[0]: ", line[0])
+        # print("line[1]", line[1])
+        flaw_labels = None
+        if i == 0:
+            continue
+        guid = "%s-%s" % (set_type, i)
+        text_a = line[0]
+        label = line[1]
+        if len(line) > 2: flaw_labels = line[2]
+        examples.append(
+            InputExample(guid=guid, text_a=text_a, text_b=None, label=label, flaw_labels=flaw_labels))
+    return examples
+
+
+def get_train_examples(DATA_DIR):
+    """See base class."""
+    if 'tsv' in DATA_DIR:
+        return _create_examples(_read_tsv(DATA_DIR), "train")
+    else:
+        return _create_examples(_read_tsv(os.path.join(DATA_DIR, "train.tsv")), "train")
+
+def get_text_from_train_examples(train_examples):
+    all_text_train_examples = []
+    for example in train_examples:
+        all_text_train_examples.append(example.text_a)
+    return all_text_train_examples
+
+def get_text_and_labels_train_examples(train_examples, label_list):
+    all_text_train_examples=[]
+    all_labels_train_examples=[]
+    label_map = {label: i for i, label in enumerate(label_list)}
+    for example in train_examples:
+        all_text_train_examples.append(example.text_a)
+        all_labels_train_examples.append(label_map[example.label])
+    return all_text_train_examples, all_labels_train_examples
+
+# from gensim.models import KeyedVectors
+# word_vectors.save('vectors.kv')
+# reloaded_word_vectors = KeyedVectors.load('vectors.kv')
+
+def get_data_encoder(data_dir, label_list):
+    train_examples = get_train_examples(data_dir)
+    text, labels = get_text_and_labels_train_examples(train_examples, label_list)
+    text_new = [txt.split() for txt in text]
+    encoder = FastText(text_new, min_count=1, size=128)
+    #encoder = Word2Vec.load(os.path.join('/tmp/pycharm_project_196/GAN2vec/data/w2v_haiku.model'))
+    save_path = os.getcwd() + '/data/sst-2'
+    #Word2Vec.save('/sst-2_gensim_word2vec.model')
+    encoder.save('/sst-2_gensim_word2vec.model')
+    # model = gensim.models.Word2Vec.load("modelName.model")
+    return text_new, text, encoder, labels
+#adversarial_attacks_for_dis(start=rnd, end=rnd+2, encoder=encoder, text=text, processor=processor, label_list=label_list)
+def adversarial_attacks_for_dis(start , end, encoder, text, processor, label_list, data_dir): # parameters : text
+    # ........code here................
+
+    # text_batch + labels
+    # from train.tsv = > text_a and labels
+
+    # text_a and labels
+    # from train.tsv = get_train_examples(_create_examples(read_tsv)))
+    #processor.get_train_examples_for_attacks(args.data_dir, start, end)
+    test_examples = processor.get_train_examples(data_dir)
+    features_for_attacks, w2i_disp, i2w_disp, vocab_size = convert_examples_to_features_gan2vec(test_examples,
+                                                                                                label_list,
+                                                                                                tokenizer=None,
+                                                                                                max_seq_length=6)
+
+    all_tokens = torch.tensor([f.token_ids for f in features_for_attacks], dtype=torch.long)
+    all_label_id = torch.tensor([f.label_id for f in features_for_attacks], dtype=torch.long)
+
+    # print("all_tokens type : ", type(all_tokens))
+    # print("all_label_id type : ", type(all_label_id))
+    # print("all_tokens type : ", all_tokens.shape)
+    # print("all_label_id type : ", all_label_id.shape)
+    # assert len(all_tokens) ==
+
+    data_for_attacks = TensorDataset(all_tokens, all_label_id)
+    sampler_for_attacks = RandomSampler(data_for_attacks)  # for NO GPU
+    # train_sampler = DistributedSampler(train_data)
+
+    # dataloader_for_attack = DataLoader(data_for_attacks, sampler=sampler_for_attacks)
+    # TOD : Removed Sampler, need to verify : Need to remove it for random_attacks also
+    dataloader_for_attack = DataLoader(data_for_attacks)
+
+    all_batch_flaw_tokens = []
+    all_batch_flaw_labels = []
+    all_batch_flaw_labels_truth = []
+    flaw_labels_lst = []
+    for step, batch in enumerate(tqdm(dataloader_for_attack, desc="Iteration")):
+        batch = tuple(t.to(device) for t in batch)
+        tokens, _ = batch  # , label_id, ngram_ids, ngram_labels, ngram_masks
+
+        # module1: learn a discriminator
+        tokens = tokens.to('cpu').numpy()
+
+        # features_with_flaws, all_flaw_tokens, all_token_idx, all_truth_tokens = convert_examples_to_features_flaw_attacks(
+        #    tokens,args.max_seq_length, args.max_ngram_length, tokenizer, i2w,embeddings = None, emb_index = None, words = None)
+
+        features_with_flaws, all_flaw_tokens, all_token_idx, all_truth_tokens, all_flaw_labels_truth = convert_examples_to_features_flaw_attacks_gr(
+            tokens, args.max_seq_length, args.max_ngram_length, i2w, tokenizer, embeddings=None, emb_index=None,
+            words=None)
+
+        all_token_idx = ",".join([str(id) for tok in all_token_idx for id in tok])
+        all_truth_tokens_flat = ' '.join([str(id) for tok in all_truth_tokens for id in tok])
+
+        flaw_ids = torch.tensor([f.flaw_ids for f in features_with_flaws])
+        flaw_labels = torch.tensor([f.flaw_labels for f in features_with_flaws])
+
+        print("all_flaw_tokens : before before ", all_flaw_tokens)
+        all_flaw_tokens = ' '.join([str(y) for x in all_flaw_tokens for y in x])
+
+        flaw_ids_ar = flaw_ids.detach().cpu().numpy()
+        flaw_ids_lst = flaw_ids.tolist()
+        flaw_labels_ar = flaw_labels.detach().cpu().numpy()
+        flaw_labels_lst = flaw_labels.tolist()
+        print("flaw_labels_lst : ", flaw_labels_lst)
+        print("all_flaw_tokens : before ", all_flaw_tokens)
+        all_flaw_tokens = all_flaw_tokens.strip("''").strip("``")
+        all_truth_tokens_flat = all_truth_tokens_flat.strip("''").strip("``")
+        # print("all_flaw_tokens: ",all_flaw_tokens)
+        print("all_flaw_tokens : ", all_flaw_tokens)
+        print("all_truth_tokens_flat : ", all_truth_tokens_flat)
+        print("all_flaw_labels_truth : ", all_flaw_labels_truth)
+        print("+++++++++++++++++++++++++++++++++++")
+        all_batch_flaw_tokens.append(all_flaw_tokens)
+        all_batch_flaw_labels.append(flaw_labels_lst)
+        all_batch_flaw_labels_truth.append(all_flaw_labels_truth)
+
+    # print("all_flaw_tokens type ", type(all_flaw_tokens))
+    # print("all_flaw_tokens type ", len(all_flaw_tokens))
+    # print("all_batch_flaw_tokens type ", type(all_batch_flaw_tokens))
+    # print("all_batch_flaw_tokens len ", len(all_batch_flaw_tokens))
+    # print("all_batch_flaw_labels type ", type(all_batch_flaw_labels))
+    # print("all_batch_flaw_labels len ", len(all_batch_flaw_labels))
+    batch_tx = []
+    BATCH_SEQ_LEN = []
+    Xtype = torch.FloatTensor
+    # for line in all_batch_flaw_tokens:
+    #     print("line: length : SBPLSHP : before:  ", len(line))
+    #     SEQ_LEN = len(line.split())
+    #     line = line.lower()
+    #     print("line: length : SBPLSHP : after: ", len(line))
+    #     # TODO - mscll. : Create a separate GAN2vec and RobGAN Utils
+    #
+    #     X = get_line_representation(line)
+    #     #tx = Variable(torch.from_numpy(np.array([X]))).type(Xtype)
+    #
+    #     # batch_tx.append(tx)
+    #     batch_tx.append(X)
+    #     print("X Length ", len(X))
+    #
+    #
+    #
+    #     BATCH_SEQ_LEN.append(SEQ_LEN)
+    #     # print("X :", type(X))
+    #     # print("tx :", type(tx))
+    #
+    # # print("batch_tx : ", len(batch_tx))
+    # # print("BATCH_SEQ_LEN : ", BATCH_SEQ_LEN)
+    # print("BATCH_SEQ_LEN : ", BATCH_SEQ_LEN)
+    # X_t = torch.tensor(batch_tx, dtype=torch.float)
+    # # packed_input = pack_padded_sequence(tx, [SEQ_LEN], batch_first=True)
+    # # print("X_t = torch.tensor(batch_tx, dtype=torch.float) shape: ",X_t.shape)
+    for line in all_batch_flaw_tokens:
+        print("line: length : SBPLSHP : before:  ", len(line))
+        SEQ_LEN = len(line.split())
+        line = line.lower()
+        print("line: length : SBPLSHP : after: ", len(line))
+        # TODO - mscll. : Create a separate GAN2vec and RobGAN Utils
+
+        X = get_target_representation(line, encoder)
+        # tx = Variable(torch.from_numpy(np.array([X]))).type(Xtype)
+
+        # batch_tx.append(tx)
+        batch_tx.append(X)
+        print("X Length ", len(X))
+
+        BATCH_SEQ_LEN.append(SEQ_LEN)
+        # print("X :", type(X))
+        # print("tx :", type(tx))
+
+    # print("batch_tx : ", len(batch_tx))
+    # print("BATCH_SEQ_LEN : ", BATCH_SEQ_LEN)
+    print("BATCH_SEQ_LEN : ", BATCH_SEQ_LEN)
+    X_t = torch.tensor(batch_tx, dtype=torch.float)
+    print("X_t shape: ", X_t.shape)
+    # packed_input = pack_padded_sequence(tx, [SEQ_LEN], batch_first=True)
+    # print("X_t = torch.tensor(batch_tx, dtype=torch.float) shape: ",X_t.shape)
+    real_adv = pack_padded_sequence(X_t, BATCH_SEQ_LEN, batch_first=True)
+    all_batch_flaw_labels_truth_t = torch.tensor(all_batch_flaw_labels_truth, dtype=torch.long)
+
+    print("all_batch_flaw_labels_truth len : ", len(all_batch_flaw_labels_truth))
+    print("all_batch_flaw_labels_truth 0 element len : ", len(all_batch_flaw_labels_truth[0]))
+    print("all_batch_flaw_labels_truth 0 element value : ", all_batch_flaw_labels_truth[0])
+    # print("all_batch_flaw_labels_truth 0 element len : ", all_batch_flaw_labels_truth[0])
+    all_batch_flaw_labels_truth_t_s = torch.squeeze(all_batch_flaw_labels_truth_t)
+    # flaw_ids_or_flaw_labels
+    # return real_adv, all_flaw_labels_truth
+    return X_t, all_batch_flaw_labels_truth_t_s
+
+
+def get_lines_encoder(start, end, text, encoder):
+    # text, encoder = get_data()
+    text = text
+    encoder = encoder
+
+    seq_lens = []
+    sentences = []
+    longest = 0
+    # print("printing start: ", start)
+    # print("printing end: ", end)
+    text_batch = []
+    for i in range((end - start)):
+        text_batch.append(text[i])
+    # print("Printing Text Batch: ", text_batch)
+    # print("Printing Text Batch: len ", len(text_batch))
+    for l in text_batch:
+        # print("l in : ",l)
+        seq_lens.append(len(l))
+        longest = len(l) if len(l) > longest else longest
+        # longest = args.max_seq_length
+        # TODO : Might need to look into the max_seq_length
+        # longest = 6
+
+        sentence = []
+        # print("encoder : ", encoder)
+        # for txt in l.split():
+        for txt in l:
+            # print(" txt : ", txt)
+            # print("encoder.wv[txt]) :", encoder.wv[txt])
+            # print("encoder.wv[txt]) type :", type(encoder.wv[txt]))
+            # print("encoder.wv[txt]) shape :", encoder.wv[txt].shape)
+            sentence.append(torch.tensor(encoder.wv[txt]))
+            # print(" sentence len : ", len(sentence))
+            # print(" sentence type : ", type(sentence))
+
+        # print("sentence type of : ", type(sentence))
+        # print("sentences len : ", len(sentences))
+        # print("sentences type : ", type(sentence))
+        sentences.append(torch.stack(sentence).unsqueeze(0))
+
+    # Pad input
+    d_size = sentences[0].size(2)
+    print("sentences: ", type(sentences))
+    print("sentences len: ", len(sentences))
+    for i in range(len(sentences)):
+        sl = sentences[i].size(1)
+
+        if sl < longest:
+            sentences[i] = torch.cat(
+                [sentences[i], torch.zeros(1, longest - sl, d_size)],
+                dim=1
+            )
+
+    # Need to squish sentences into [0,1] domain
+    seq = torch.cat(sentences, dim=0)
+    # seq = torch.sigmoid(seq)
+    print("seq: type ", type(seq))
+    # print("seq: len ", len(seq))
+    # print("seq:  ", seq)
+    print("seq:  shape ", seq.shape)
+    print("Seq_lens: ", seq_lens)
+    start_words = seq[:, 0:1, :]
+    # start_words = seq[:, :, :]
+
+    # for idx in range(len(seq_lens)):
+    #  start_words = seq[:,0:(seq_lens[idx]-1), :]
+    packer = pack_padded_sequence(
+        seq,
+        seq_lens,
+        batch_first=True,
+        enforce_sorted=False
+    )
+
+    # print("packer type of : ", type(packer))
+    # print("start words type of : ", type(start_words))
+    # print("packer type of : ", type(packer))
+    # print("packer type of : shape ", packer.shape)
+    # print("start words type of : ", type(start_words))
+    # print("start words type of : shape ", start_words.shape)
+    return packer, start_words
 
 def get_lines(filename):
     f = open(filename)

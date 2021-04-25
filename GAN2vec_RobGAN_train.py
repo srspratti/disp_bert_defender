@@ -269,212 +269,27 @@ def main():
 
     def get_data():
 
-
         train_examples = get_train_examples(args.data_dir)
-        #text = get_text_from_train_examples(train_examples)
         text, labels = get_text_and_labels_train_examples(train_examples)
-        #print("text: ", text)
-        #print("text type : ", type(text))
-        #print("text len : ", len(text))
 
-        # logger.info("Loading word embeddings ... ")
-        # emb_dict, emb_vec, vocab_list, emb_vocab_size = load_vectors(args.word_embedding_file)
-        # if not os.path.exists(args.index_path):
-        #
-        #     write_vocab_info(args.word_embedding_info, emb_vocab_size, vocab_list)
-        #     encoder = load_embeddings_and_save_index(range(emb_vocab_size), emb_vec, args.index_path)
-        # else:
-        #     # emb_vocab_size, vocab_list = load_vocab_info(args.word_embedding_info)
-        #     encoder = load_embedding_index(args.index_path, emb_vocab_size, num_dim=args.embedding_size)
-
-        #encoder = Word2Vec.load(os.path.join(DATA_DIR, IN_W2V))
-        #from gensim.models import FastText
-        #sentences = [["cat", "say", "meow"], ["dog", "say", "woof"]]
         logger.info("Loading word embeddings ...in Gensim format ")
-        #encoder = FastText.load_fasttext_format(args.word_embedding_file)
 
-        #text_new = [ tk for txt in text for tk in txt]
         text_new = [txt.split() for txt in text]
-        # encoder = FastText(text_new, min_count=1)
-        #word_embedding_file
-        # encoder = Word2Vec.load(os.path.join('/tmp/pycharm_project_196/GAN2vec/data/w2v_haiku.model'))
-        #gensim.models.KeyedVectors.load_word2vec_format
-        #encoder = gensim.models.wrappers.fasttext.FastTextKeyedVectors.load_word2vec_format(args.word_embedding_file)
-        #encoder = gensim.models.KeyedVectors.load_word2vec_format(args.word_embedding_file)
-        #encoder = Word2Vec(text_new, min_count=1, size = 128)
+
         encoder = FastText(text_new, min_count=1, size=128)
-        # print("encoder: ", encoder)
-        # print("text_new : ", text_new)
-        # print("text_new type : ", type(text_new))
-        # print("text_new len : ", len(text_new))
-        # for ii in range(len(text)):
-        #     sentences = [x for x in text if x != ['']]
-        #     text[ii] = sentences
-        # all_sentences = []
-        # for txt in text:
-        #     all_sentences += txt
-        #sentences
-        #print("all_sentences: ", all_sentences)
-        # print("text : ", text)
-        # print("text type : ", type(text))
-        # print("text len : ", len(text))
-        #encoder = FastText(all_sentences, min_count=1)
-        #encoder = FastText(text, min_count=1)
-        # encoder = FastText(text_new, min_count=1)
-        # #encoder = Word2Vec.load(os.path.join('/tmp/pycharm_project_196/GAN2vec/data/w2v_haiku.model'))
-        # print("encoder: ", encoder)
+
         return text_new, text, encoder, labels
-    
-    def get_lines_old(start, end, text, encoder):
-        #text, encoder = get_data()
-        text = text
-        encoder = encoder
-
-        seq_lens = []
-        sentences = []
-        longest = 0
-        #print("printing start: ", start)
-        #print("printing end: ", end)
-        text_batch = []
-        for i in range((end-start)):
-            text_batch.append(text[i])
-        #print("Printing Text Batch: ", text_batch)
-        #print("Printing Text Batch: len ", len(text_batch))
-        for l in text_batch :
-            #print("l in : ",l)
-            seq_lens.append(len(l))
-            longest = len(l) if len(l) > longest else longest
-            #longest = args.max_seq_length
-
-            sentence = []
-            #print("encoder : ", encoder)
-            #for txt in l.split():
-            for txt in l:
-                #print(" txt : ", txt)
-                #print("encoder.wv[txt]) :", encoder.wv[txt])
-                #print("encoder.wv[txt]) type :", type(encoder.wv[txt]))
-                #print("encoder.wv[txt]) shape :", encoder.wv[txt].shape)
-                sentence.append(torch.tensor(encoder.wv[txt]))
-                #print(" sentence len : ", len(sentence))
-                #print(" sentence type : ", type(sentence))
-
-            #print("sentence type of : ", type(sentence))
-            #print("sentences len : ", len(sentences))
-            #print("sentences type : ", type(sentence))
-            sentences.append(torch.stack(sentence).unsqueeze(0))
-
-        # Pad input
-        d_size = sentences[0].size(2)
-        #print("sentences: ", type(sentences))
-        for i in range(len(sentences)):
-            sl = sentences[i].size(1)
-
-            if sl < longest:
-                sentences[i] = torch.cat(
-                    [sentences[i], torch.zeros(1, longest - sl, d_size)],
-                    dim=1
-                )
-
-        # Need to squish sentences into [0,1] domain
-        seq = torch.cat(sentences, dim=0)
-        # seq = torch.sigmoid(seq)
-        #print("seq: type ", type(seq))
-        #print("seq: len ", len(seq))
-        #print("seq:  ", seq)
-        #print("seq:  shape ", seq.shape)
-        start_words = seq[:, 0:1, :]
-        packer = pack_padded_sequence(
-            seq,
-            seq_lens,
-            batch_first=True,
-            enforce_sorted=False
-        )
-
-        # print("packer type of : ", type(packer))
-        # print("start words type of : ", type(start_words))
-        #print("packer type of : ", type(packer))
-        #print("packer type of : shape ", packer.shape)
-        #print("start words type of : ", type(start_words))
-        #print("start words type of : shape ", start_words.shape)
-        return packer, start_words
-
-    def get_lines_old_old(start, end):
-        text, encoder = get_data()
-
-        seq_lens = []
-        sentences = []
-        longest = 0
-        print("printing start: ", start)
-        print("printing end: ", end)
-        text_batch = []
-        for i in range((end-start)):
-            text_batch.append(text[i])
-        print("Printing Text Batch: ", text_batch)
-        for l in text_batch :
-            print("l in : ",l)
-            seq_lens.append(len(l))
-            longest = len(l) if len(l) > longest else longest
-            #longest = args.max_seq_length
-
-            sentence = []
-            print("encoder : ", encoder)
-            #for txt in l.split():
-            for txt in l:
-                #print(" txt : ", txt)
-                #print("encoder.wv[txt]) :", encoder.wv[txt])
-                #print("encoder.wv[txt]) type :", type(encoder.wv[txt]))
-                #print("encoder.wv[txt]) shape :", encoder.wv[txt].shape)
-                sentence.append(torch.tensor(encoder.wv[txt]))
-                print(" sentence len : ", len(sentence))
-                print(" sentence type : ", type(sentence))
-
-            #print("sentence type of : ", type(sentence))
-            print("sentences len : ", len(sentences))
-            print("sentences type : ", type(sentence))
-            sentences.append(torch.stack(sentence).unsqueeze(0))
-
-        # Pad input
-        d_size = sentences[0].size(2)
-        print("sentences: ", type(sentences))
-        for i in range(len(sentences)):
-            sl = sentences[i].size(1)
-
-            if sl < longest:
-                sentences[i] = torch.cat(
-                    [sentences[i], torch.zeros(1, longest - sl, d_size)],
-                    dim=1
-                )
-
-        # Need to squish sentences into [0,1] domain
-        seq = torch.cat(sentences, dim=0)
-        # seq = torch.sigmoid(seq)
-        print("seq: type ", type(seq))
-        print("seq: len ", len(seq))
-        print("seq:  shape ", seq.shape)
-        start_words = seq[:, 0:1, :]
-        packer = pack_padded_sequence(
-            seq,
-            seq_lens,
-            batch_first=True,
-            enforce_sorted=False
-        )
-
-        print("packer type of : ", type(packer))
-        print("packer type of : shape ", packer.shape)
-        print("start words type of : ", type(start_words))
-        print("start words type of : shape ", start_words.shape)
-        return packer, start_words
 
     def get_lines(start, end, text, encoder):
-        #text, encoder = get_data()
+
         text = text
         encoder = encoder
 
         seq_lens = []
         sentences = []
         longest = 0
-        #print("printing start: ", start)
         #print("printing end: ", end)
+        #print("printing start: ", start)
         text_batch = []
         for i in range((end-start)):
             text_batch.append(text[i])
