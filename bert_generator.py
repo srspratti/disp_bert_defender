@@ -298,7 +298,7 @@ def main():
         nb_tr_steps = 0
         tr_loss = 0
 
-    #if args.do_train:
+    if args.do_train:
 
         train_data = TensorDataset(all_ngram_ids, all_ngram_labels, all_ngram_masks, all_ngram_embeddings)
         if args.local_rank == -1:

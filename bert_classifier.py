@@ -323,7 +323,7 @@ def main():
                     logger.info("  %s = %s", key, str(result[key]))
                     writer.write("%s = %s\n" % (key, str(result[key])))
                 writer.write('\n')
-            if ind % 5 == 0:         
+            if ind % 1 == 0:         
                 model_to_save = model.module if hasattr(model, 'module') else model
                 output_model_file = os.path.join(args.output_dir, "epoch"+str(ind)+"_"+WEIGHTS_NAME)
                 torch.save(model_to_save.state_dict(), output_model_file)
