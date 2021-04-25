@@ -212,6 +212,9 @@ class Discriminator(nn.Module):
         #self.lstm = nn.LSTM(char_vocab_size, hdim, 1, batch_first=True, bidirectional=True)
         self.linear = nn.Linear(2*hdim, output_dim)
 
+        #word = [the good dat ]
+        #     = [0 0 1] 0 - non perturbed, 1 - perturbed
+
     # TODO : Convert a tensor to packed sentence
     def cvrt_tsr_line_representation(self, packed_input):
 

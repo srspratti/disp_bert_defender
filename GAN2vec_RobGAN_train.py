@@ -1224,7 +1224,7 @@ def main():
                                         # to-do : OR
 
                 # to-do : 2. Total Discriminator Losses = ( Real & Adv ) loss + Fake Loss
-                d_loss_total = d_adv_loss + d_f_loss
+                d_loss_total = d_adv_loss + d_f_loss # TODO : Weighted Average
 
                 d_loss_total.backward()
                 opt_d.step()
