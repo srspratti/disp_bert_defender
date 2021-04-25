@@ -1,0 +1,5 @@
+eval_acc = 0.8905735356135223
+eval_f1 = 0.0
+eval_loss = 0.26610878632779705
+eval_precision = 0.0
+eval_recall = 0.0
