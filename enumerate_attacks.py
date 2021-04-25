@@ -79,7 +79,7 @@ if __name__ == '__main__':
     if attack_type == 'embed':
         print('Load embeddings')
         emb_index.load_index('emb.index', max_elements = 2000000)
-        with open('emb.word', 'r') as fp:
+        with open('emb.word', 'r',encoding="utf-8") as fp:
             for line in fp:
                 emb_words.append(line.strip())
                 emb_word_id[emb_words[-1]] = len(emb_words) - 1
@@ -92,7 +92,7 @@ if __name__ == '__main__':
         output_file = output_dir + 'dev.tsv'
     with open(output_file, 'w') as wp:
         with open(output_file + '.num', 'w') as wpn:
-            with open(input_file, 'r') as fp:
+            with open(input_file, 'r',encoding="utf-8") as fp:
                 writer = csv.writer(wp, delimiter='\t' if is_SST else ',')
                 reader = csv.reader(fp, delimiter='\t' if is_SST else ',')
                 for line in reader:

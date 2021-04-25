@@ -126,6 +126,8 @@ def main():
                         help="Loss scaling to improve fp16 numeric stability. Only used when fp16 set to True.\n"
                              "0 (default value): dynamic loss scaling.\n"
                              "Positive power of 2: static loss scaling value.\n")
+    parser.add_argument("-v", "--verbose", help="modify output verbosity", 
+                    action = "store_true")
     parser.add_argument('--server_ip', type=str, default='', help="Can be used for distant debugging.")
     parser.add_argument('--server_port', type=str, default='', help="Can be used for distant debugging.")
     args = parser.parse_args()
@@ -321,14 +323,21 @@ def main():
                     logger.info("  %s = %s", key, str(result[key]))
                     writer.write("%s = %s\n" % (key, str(result[key])))
                 writer.write('\n')
-                    
-            model_to_save = model.module if hasattr(model, 'module') else model
-            output_model_file = os.path.join(args.output_dir, "epoch"+str(ind)+"_"+WEIGHTS_NAME)
-            torch.save(model_to_save.state_dict(), output_model_file)
-            output_config_file = os.path.join(args.output_dir, CONFIG_NAME)
-            with open(output_config_file, 'w') as f:
-                f.write(model_to_save.config.to_json_string())
+            if ind % 5 == 0:         
+                model_to_save = model.module if hasattr(model, 'module') else model
+                output_model_file = os.path.join(args.output_dir, "epoch"+str(ind)+"_"+WEIGHTS_NAME)
+                torch.save(model_to_save.state_dict(), output_model_file)
+                output_config_file = os.path.join(args.output_dir, CONFIG_NAME)
+                with open(output_config_file, 'w') as f:
+                    f.write(model_to_save.config.to_json_string())
 
+
+        model_to_save = model.module if hasattr(model, 'module') else model
+        output_model_file = os.path.join(args.output_dir, "class_"+WEIGHTS_NAME)
+        torch.save(model_to_save.state_dict(), output_model_file)
+        output_config_file = os.path.join(args.output_dir, CONFIG_NAME)
+        with open(output_config_file, 'w') as f:
+            f.write(model_to_save.config.to_json_string())
 
     # Save a trained model and the associated configuration
     #model_to_save = model.module if hasattr(model, 'module') else model  # Only save the model it-self

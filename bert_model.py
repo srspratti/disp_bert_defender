@@ -1221,7 +1221,7 @@ class BertForDiscriminator(BertPreTrainedModel):
 
         # discriminator loss
         # sequence_output_flaw: (batch_size, sequence_length, hidden_size)
-        #print("input_ids_flaw:{}".format(input_ids_flaw[0]))
+        # print("input_ids_flaw:{}".format(input_ids_flaw[0]))
 
         sequence_output_flaw, _ = self.bert(input_ids_flaw, None, attention_mask,
                                        output_all_encoded_layers=False) 
@@ -1308,3 +1308,4 @@ class BertForClassifier(BertPreTrainedModel):
             return loss, logits
         else:
             return logits
+        
