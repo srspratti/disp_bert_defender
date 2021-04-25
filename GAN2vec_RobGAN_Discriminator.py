@@ -8,7 +8,7 @@ from gensim.models import Word2Vec
 from tqdm import tqdm, trange
 from GAN2vec_RobGAN_train import *
 
-data_dir_path = os.getcwd() + '/data/sst-2/test_old.tsv'
+data_dir_path = os.getcwd() + '/data/sst-2/train.tsv'
 bert_model = 'bert-base-uncased'
 do_lower_case = True
 
@@ -24,6 +24,7 @@ def create_vec_model_save():
     text, text_orig, encoder, labels = get_data_encoder(data_dir_path, label_list)
 
     create_vocab(data_dir_path, text_orig)
+    print("w2i={}, i2w={}, CHAR_VOCAB={}".format(w2i, i2w, CHAR_VOCAB))
 
     return text, text_orig, encoder, labels, processor, label_list
 
@@ -37,9 +38,9 @@ def load_encoder():
     return gensim.models.Word2Vec.load()
 
 
-def discriminator_test():
-    i=1
-    while (i <= 2):
+def discriminator_test(num_batches):
+    num = 0
+    for num in range(num_batches):
 
         # Loading trained Discriminator
 
@@ -49,17 +50,23 @@ def discriminator_test():
         # Loading Text and Encoder
         text, _, encoder, _, processor,label_list= create_vec_model_save()
 
-        rnd = randint(0, 2)
+        rnd = randint(1, 100)
         print("rnd: ", rnd)
         #sentences_packed, _ = get_lines_encoder(rnd, rnd + 2, text, encoder)
         tokenizer = BertTokenizer.from_pretrained(bert_model, do_lower_case=do_lower_case)
-        sentences_packed, _ = adversarial_attacks_for_dis(start=rnd, end=rnd+2, encoder=encoder, text=text,
+        sentences_packed, sentence_flaw_labels_truth = adversarial_attacks_for_dis(start=rnd, end=rnd+7, encoder=encoder, text=text,
                                                           processor=processor, label_list=label_list,
                                                           data_dir=data_dir_path, tokenizer=tokenizer)
         sentence_label, sentence_word_labels = Dis_saved(sentences_packed)
         print("sentence_label type: ", type(sentence_label))
         print("sentence_word_labels type: ", type(sentence_word_labels))
-
+        print("sentence_label type: ", sentence_label.shape)
+        print("sentence_word_labels type: ", sentence_word_labels.shape)
+        print("sentence_word_labels value: ", sentence_word_labels[0,:,:])
+        #sentence_flaw_labels_truth
+        #print("sentence_flaw_labels_truth value: ", sentence_flaw_labels_truth[0, :, :])
+        print("sentence_flaw_labels_truth Shape: ", sentence_flaw_labels_truth.shape)
+        print("Batch done.....")
         # s = G.generate(sw)
 
         #
@@ -76,13 +83,13 @@ def discriminator_test():
         # print(' '.join(st))
         # print('\t'.join(['%0.4f' % i for i in sim]))
         # #print(s)
-        ipt = input()
+        #ipt = input()
 
-        i=+1
+
 
 def main():
     #discriminator_test(data_dir_path)
-    discriminator_test()
+    discriminator_test(1)
 
 if __name__ == '__main__':
     main()

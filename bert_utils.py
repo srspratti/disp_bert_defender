@@ -232,6 +232,7 @@ def convert_examples_to_features_gan2vec(examples, label_list, max_seq_length, t
     for (ex_index, example) in enumerate(examples):
         token_ids = []
         tokens = word_tokenize(example.text_a)
+        print("Printing tokens truth: ", tokens)
         #print("length of tokens: ", len(tokens))
         if len(tokens) > max_seq_length: # TODO : Might need to change it back, used it for Gan2vec and RobGAN
             tokens = tokens[:max_seq_length]
@@ -803,13 +804,13 @@ def convert_examples_to_features_flaw_attacks_gr(examples, max_seq_length, max_n
         print("tokens : ", tokens_print)
         for idx, tok_id in enumerate(tokens):
 
-            #print("tok_id : ",tok_id)
+            print("tok_id : ",tok_id)
 
             # TODO : Important, critical addition to the code : adding new words ( common words such as 'the' , 'is' , 'a' etc..)
             #if tok_id == 0: break # Uncomment to remove the below to-do
 
             #if tok_id == 0 or tok_id == 1 or tok_id == 359 : tok_id = np.random.choice([2,47,3,4]) # TODO : change -1
-            if tok_id == 0 or 1 or 359 : tok_id = 2  # TODO : change -1
+            if tok_id == 0 or tok_id == 1 or tok_id == 359 : tok_id = 2  # TODO : change -1
             #if tok_id == 1 : tok_id = np.random.choice([2]) # TODO : change -2
 
             tok = i2w[tok_id]

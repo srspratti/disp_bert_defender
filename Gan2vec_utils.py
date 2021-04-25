@@ -122,6 +122,7 @@ def get_data_encoder(data_dir, label_list):
     # model = gensim.models.Word2Vec.load("modelName.model")
     return text_new, text, encoder, labels
 #adversarial_attacks_for_dis(start=rnd, end=rnd+2, encoder=encoder, text=text, processor=processor, label_list=label_list)
+
 def adversarial_attacks_for_dis(start , end, encoder, text, processor, label_list, data_dir, tokenizer): # parameters : text
     # ........code here................
 
@@ -135,7 +136,8 @@ def adversarial_attacks_for_dis(start , end, encoder, text, processor, label_lis
     max_seq_length = 6
     max_ngram_length= None
 
-    test_examples = processor.get_train_examples(data_dir)
+    #test_examples = processor.get_train_examples(data_dir)
+    test_examples = processor.get_train_examples_for_attacks(data_dir, start, end)
     features_for_attacks, w2i_disp, i2w_disp, vocab_size = convert_examples_to_features_gan2vec(test_examples,
                                                                                                 label_list,
                                                                                                 tokenizer=None,
