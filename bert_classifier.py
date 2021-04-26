@@ -459,7 +459,7 @@ def main():
                   'global_step': global_step,
                   'loss': loss}
 
-        output_eval_file = os.path.join(args.output_dir, "classifier_eval_results.txt")
+        output_eval_file = os.path.join(args.output_dir, "classifier_eval_results_drop_dev_attacks.txt")
         with open(output_eval_file, "w") as writer:
             logger.info("***** Eval results *****")
             for key in sorted(result.keys()):

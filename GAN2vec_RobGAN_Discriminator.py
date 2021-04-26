@@ -67,23 +67,9 @@ def discriminator_test(num_batches):
         #print("sentence_flaw_labels_truth value: ", sentence_flaw_labels_truth[0, :, :])
         print("sentence_flaw_labels_truth Shape: ", sentence_flaw_labels_truth.shape)
         print("Batch done.....")
-        # s = G.generate(sw)
 
-        #
-        # s = s[0].detach().numpy()
-        # print(s.shape)
-        #
-        # st = [
-        #     encoder.most_similar([s[i]], topn=1)[0]
-        #     for i in range(s.shape[0])
-        # ]
-        #
-        # st, sim = list(zip(*st))
-        #
-        # print(' '.join(st))
-        # print('\t'.join(['%0.4f' % i for i in sim]))
-        # #print(s)
-        #ipt = input()
+        # TODO : Need to add Eval metric - Precision , Recall and F1
+        # TODO : Need to output the format for embedding estimator to recover the tokens
 
 
 

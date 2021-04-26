@@ -68,22 +68,22 @@ def attack_disp(text, attack_type):
     flaw_label = 0
     if prob < 0.15:
         try:
-            if attack_type == 'add':
+            if attack_type == 'add': # Insertion
                 flaw_label = 1
                 idx = random.randint(0, len(text))
                 return flaw_label, text[:idx] + random.choice(available_chars) + text[idx:]
-            elif attack_type == 'drop':
+            elif attack_type == 'drop': # deletion
                 flaw_label = 1
                 idx = random.randint(0, len(text) - 1)
                 return flaw_label, text[:idx] + text[idx+1:]
-            elif attack_type == 'swap':
+            elif attack_type == 'swap': # swap
                 flaw_label = 1
                 idx = random.randint(0, len(text) - 2)
                 return flaw_label, text[:idx] + text[idx+1] + text[idx] + text[idx+2:]
-            elif attack_type == 'rand':
+            elif attack_type == 'rand': # random
                 flaw_label = 1
                 return flaw_label, random.choice(wordbase)
-            elif attack_type == 'embed':
+            elif attack_type == 'embed': # embed
                 flaw_label = 1
                 emb = emb_index.get_items([emb_word_id[text]])
                 word_ids, _ =  emb_index.knn_query(emb, k=20)
