@@ -17,6 +17,6 @@ command = 'python bert_discriminator.py  ' \
           '--num_train_epochs 5  ' \
           '--output_dir ./models/  ' \
           '--single' \
-          '> GAN2vec_RobGAN_data_oup/console_outputs/console_outputs_discrim_eval_rand_attacks.txt '
+          '> GAN2vec_RobGAN_data_oup/console_outputs/console_outputs_discrim_eval_rand_attacks_v3.txt '
 
 os.system(command)

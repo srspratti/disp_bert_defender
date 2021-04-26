@@ -14,6 +14,6 @@ command = 'python bert_enumerate_attacks_disp.py ' \
           '--max_seq_length 128  ' \
           '--output_dir ./data/sst-2/add_1 ' \
           '--attack_type rand ' \
-          '> GAN2vec_RobGAN_data_oup/console_outputs/console_outputs_enumerate_attacks_rand.txt '
+          '> GAN2vec_RobGAN_data_oup/console_outputs/console_outputs_enumerate_attacks_rand_v2.txt '
 
 os.system(command)

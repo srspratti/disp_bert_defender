@@ -466,8 +466,9 @@ def convert_examples_to_features_gnrt_eval(examples, label_list, max_seq_length,
             tokens = tokens[:max_seq_length]
 
         if example.flaw_labels is not None:
-            # flaw_labels = [int(x) for x in (example.flaw_labels).split(',')]
-            flaw_labels = [int(x) for x in (example.flaw_labels).strip('"').strip(' ').split(',')]
+            print("flaw_labels: ", example.flaw_labels)
+            flaw_labels = [int(x) for x in (example.flaw_labels).split(',')]
+            #flaw_labels = [int(x) for x in (example.flaw_labels).strip('"').strip(' ').split(',')]
         # else:
         #     flaw_labels = list(range(len(tokens)))   
 
@@ -723,7 +724,7 @@ def convert_examples_to_features_flaw_attacks_disp(examples, max_seq_length, max
 
         for idx, tok_id in enumerate(tokens):
 
-            # print("tok_id : ",tok_id)
+            print("tok_id : ",tok_id)
 
             if tok_id == 0: break
 
@@ -737,6 +738,9 @@ def convert_examples_to_features_flaw_attacks_disp(examples, max_seq_length, max
 
             flaw_labels += [label] * len(word_pieces)
             flaw_pieces += word_pieces
+
+            print("idx is {} : tok_id = {} : tok = {} : tok_flaw = {} : label = {} ".format(idx, tok_id, tok, tok_flaw,
+                                                                                            label))
 
             #print("label: ", label)
             flaw_tokens_seq.append(tok_flaw)

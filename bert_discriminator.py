@@ -396,7 +396,7 @@ def main():
         else:
             eval_range = trange(int(args.num_eval_epochs), desc="Epoch")
 
-        attack_type = 'add'
+        attack_type = 'rand'
         for epoch in eval_range:
 
             output_file = os.path.join(args.data_dir, "epoch"+str(epoch)+"disc_eval_outputs_"+attack_type+".tsv")

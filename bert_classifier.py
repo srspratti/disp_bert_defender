@@ -125,6 +125,10 @@ def main():
     parser.add_argument('--fp16',
                         action='store_true',
                         help="Whether to use 16-bit float precision instead of 32-bit")
+    parser.add_argument('--attack_type',
+                        default='no_attack_specified',
+                        type=str,
+                        help="Please specify the attacks from the list : drop , add, swap, rand, embed ")
     parser.add_argument('--loss_scale',
                         type=float, default=0,
                         help="Loss scaling to improve fp16 numeric stability. Only used when fp16 set to True.\n"
@@ -458,8 +462,9 @@ def main():
                   'eval_accuracy': eval_accuracy,
                   'global_step': global_step,
                   'loss': loss}
-
-        output_eval_file = os.path.join(args.output_dir, "classifier_eval_results_drop_dev_attacks.txt")
+        #attack_type = 'drop'
+        attack_type = args.attack_type
+        output_eval_file = os.path.join(args.output_dir, "classifier_eval_results_"+attack_type+"_recovered.txt")
         with open(output_eval_file, "w") as writer:
             logger.info("***** Eval results *****")
             for key in sorted(result.keys()):
