@@ -6,6 +6,7 @@ import logging
 import os
 import random
 import sys
+import shutil
 
 import numpy as np
 import torch
@@ -340,7 +341,7 @@ def main():
                     'loss': loss,
                     }
 
-            output_eval_file = os.path.join(args.output_dir, "train_results.txt")
+            output_eval_file = os.path.join(args.output_dir, "gnrt_train_results.txt")
             with open(output_eval_file, "a") as writer:
                 #logger.info("***** Training results *****")
                 writer.write("epoch"+str(ind)+'\n')
@@ -355,6 +356,14 @@ def main():
             output_config_file = os.path.join(args.output_dir, CONFIG_NAME)
             with open(output_config_file, 'w') as f:
                 f.write(model_to_save.config.to_json_string())
+
+        os.rename(output_model_file, os.path.join(args.output_dir, "gnrt_trained_" + WEIGHTS_NAME))
+        current_path =os.path.join(args.output_dir, "gnrt_trained_" + WEIGHTS_NAME)
+        new_path = os.path.join('./models', "gnrt_trained_" + WEIGHTS_NAME)
+        new_path_config = os.path.join('./models' + CONFIG_NAME)
+        shutil.move(current_path, new_path)
+        shutil.move(output_config_file, new_path_config)
+
 
     # Load a trained model and config that you have fine-tuned
     if args.do_eval and (args.local_rank == -1 or torch.distributed.get_rank() == 0):
@@ -388,9 +397,10 @@ def main():
         else:
             eval_range = trange(int(args.num_eval_epochs), desc="Epoch")
 
+        attack_type = 'add'
         for epoch in eval_range:
 
-            output_file = os.path.join(args.data_dir, "epoch"+str(epoch)+"gnrt_outputs.tsv")
+            output_file = os.path.join(args.data_dir, "epoch"+str(epoch)+"gnrt_outputs_"+attack_type+".tsv")
             with open(output_file,"w") as csv_file:
                 writer = csv.writer(csv_file, delimiter='\t')
                 writer.writerow(["sentence", "label"])
@@ -432,6 +442,12 @@ def main():
                         label = str(label_id[i])
                         writer = csv.writer(csv_file, delimiter='\t')
                         writer.writerow([token_new, label])
+
+        current_path = os.path.join(args.data_dir, "epoch" + str(epoch) + "gnrt_outputs_" + attack_type + ".tsv")
+        new_path = os.path.join(args.data_dir, "gnrt_eval_outputs_" + attack_type + ".tsv")
+        #current_path = os.path.join(args.data_dir, "epoch" + str(epoch) + "disc_eval_outputs_" + attack_type + ".tsv")
+        os.rename(current_path, new_path)
+
 
 
 if __name__ == "__main__":

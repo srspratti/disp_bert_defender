@@ -9,6 +9,7 @@ import sys
 #copy-test
 import numpy as np
 import torch
+import shutil
 from torch.utils.data import (DataLoader, RandomSampler, SequentialSampler,
                               TensorDataset)
 from torch.utils.data.distributed import DistributedSampler
@@ -355,6 +356,14 @@ def main():
             with open(output_config_file, 'w') as f:
                 f.write(model_to_save.config.to_json_string())
 
+        os.rename(output_model_file, os.path.join(args.output_dir, "disc_trained_" + WEIGHTS_NAME))
+        current_path =os.path.join(args.output_dir, "disc_trained_" + WEIGHTS_NAME)
+        new_path = os.path.join('./models', "disc_trained_" + WEIGHTS_NAME)
+        new_path_config = os.path.join('./models' + CONFIG_NAME)
+        shutil.move(current_path, new_path)
+        shutil.move(output_config_file, new_path_config)
+
+
     if args.do_eval and (args.local_rank == -1 or torch.distributed.get_rank() == 0): # for trouble-shooting
 
         eval_examples = processor.get_disc_dev_examples(args.data_file)
@@ -387,14 +396,16 @@ def main():
         else:
             eval_range = trange(int(args.num_eval_epochs), desc="Epoch")
 
+        attack_type = 'add'
         for epoch in eval_range:
 
-            output_file = os.path.join(args.data_dir, "epoch"+str(epoch)+"disc_outputs.tsv")
+            output_file = os.path.join(args.data_dir, "epoch"+str(epoch)+"disc_eval_outputs_"+attack_type+".tsv")
             with open(output_file,"w") as csv_file:
                 writer = csv.writer(csv_file, delimiter='\t')
                 writer.writerow(["sentence", "label", "ids"])
 
-            output_model_file = os.path.join(args.output_dir, "epoch"+str(epoch)+WEIGHTS_NAME)
+            #output_model_file = os.path.join(args.output_dir, "epoch"+str(epoch)+WEIGHTS_NAME)
+            output_model_file = os.path.join(args.output_dir, "disc_trained_" + WEIGHTS_NAME)
             output_config_file = os.path.join(args.output_dir, CONFIG_NAME)
             #print("output_model_file: ", output_model_file)
             config = BertConfig(output_config_file)
@@ -425,17 +436,17 @@ def main():
                     
                     logits = model(input_ids, input_mask)
                     
-#                     print("len of logits: ",len(logits))
-#                     print("shape of logits: ",logits.size())
-#                     print("type of logits: ",type(logits))
-#                     print("type of logits: ",logits)
+                    print("len of logits: ",len(logits))
+                    print("shape of logits: ",logits.size())
+                    print("type of logits: ",type(logits))
+                    print("type of logits: ",logits)
                     
                     flaw_logits = torch.argmax(logits, dim=2)
                     
-                    # print("Type of flaw_logits: ",type(flaw_logits))
-                    # print("shape of flaw_logits: ",flaw_logits.size())
-                    # print("Length of flaw_logits: ",len(flaw_logits))
-                    # print("flaw_logits: ", flaw_logits)
+                    print("Type of flaw_logits: ",type(flaw_logits))
+                    print("shape of flaw_logits: ",flaw_logits.size())
+                    print("Length of flaw_logits: ",len(flaw_logits))
+                    print("flaw_logits: ", flaw_logits)
 
                 logits = logits.detach().cpu().numpy()
                 flaw_logits = flaw_logits.detach().cpu().numpy()
@@ -446,10 +457,10 @@ def main():
                 
                 flaw_logits = logit_converter(flaw_logits, chunks) # each word only has one '1'
                 
-#                 print("Type of flaw_logits logit_converter: ",type(flaw_logits))
-#                 #print("shape of flaw_logits logit_converter : ",flaw_logits.size())
-#                 print("Length of flaw_logits logit_converter : ",len(flaw_logits))
-#                 print("flaw_logits logit_converter : ", flaw_logits)
+                print("Type of flaw_logits logit_converter: ",type(flaw_logits))
+                #print("shape of flaw_logits logit_converter : ",flaw_logits.size())
+                print("Length of flaw_logits logit_converter : ",len(flaw_logits))
+                print("flaw_logits logit_converter : ", flaw_logits)
                 
                 true_logits = []
                 
@@ -478,10 +489,10 @@ def main():
                 tmp_eval_accuracy = accuracy_2d(flaw_logits, true_logits)
                 eval_accuracy += tmp_eval_accuracy 
 
-                #predictions += true_logits # Original
-                #truths += flaw_logits # Original
-                predictions += flaw_logits # for trouble-shooting
-                truths += true_logits # for trouble-shooting
+                predictions += true_logits # Original
+                truths += flaw_logits # Original
+                #predictions += flaw_logits # for trouble-shooting
+                #truths += true_logits # for trouble-shooting
                 eval_loss += tmp_eval_loss.mean().item()
                 nb_eval_examples += input_ids.size(0)
                 nb_eval_steps += 1
@@ -498,6 +509,8 @@ def main():
                         writer = csv.writer(csv_file, delimiter='\t')
                         writer.writerow([token, label, logit])
 
+                # Renaming and moving the file for Embedding Estimator
+
             eval_loss = eval_loss / nb_eval_steps
             eval_accuracy = eval_accuracy / nb_eval_steps
             eval_f1_score, eval_recall_score, eval_precision_score  = f1_2d(truths, predictions)
@@ -508,12 +521,17 @@ def main():
                     'eval_precision': eval_precision_score,
                     'eval_acc': eval_accuracy}
 
-            output_eval_file = os.path.join(args.output_dir, "eval_results.txt")
+            output_eval_file = os.path.join(args.output_dir, "disc_eval_results_"+attack_type+"_attacks.txt")
             with open(output_eval_file, "a") as writer:
                 logger.info("***** Eval results *****")
                 for key in sorted(result.keys()):
                     logger.info("  %s = %s", key, str(result[key]))
                     writer.write("%s = %s\n" % (key, str(result[key])))
-        
+
+            #attack_type='drop'
+            new_path = os.path.join(args.data_dir, "disc_eval_outputs_"+attack_type+".tsv")
+            current_path = os.path.join(args.data_dir, "epoch" + str(epoch) + "disc_eval_outputs_"+attack_type+".tsv")
+            os.rename(current_path,new_path)
+
 if __name__ == "__main__":
-    main() 
+    main()
