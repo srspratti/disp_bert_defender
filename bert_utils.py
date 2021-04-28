@@ -24,6 +24,8 @@ logger = logging.getLogger(__name__)
 
 
 def load_vectors(fname):
+    if fname == "./emb/crawl-300d-2M.pkl":
+        return load_vectors_pkl(fname)
     #print("fname value ****::::****=> ",fname)
     fin = io.open(fname, 'r', encoding='utf-8', newline='\n', errors='ignore')
     emb_dict = {}
@@ -45,6 +47,21 @@ def load_vectors(fname):
     #print("emp_vec type ****::::****=> ",type(emb_vec))
     #print("emb_vec length ****::::****=> ",len(emb_vec))
     #print("emb_vec[0] value 0 element ****::::****=> ",emb_vec[0])
+    return emb_dict, emb_vec, vocab_list, len(vocab_list)
+
+def load_vectors_pkl(fname):
+    import pickle
+    with open(fname, 'rb') as fp:
+        emb_dict = pickle.load(fp)
+    vocab_list = list(emb_dict.keys())
+    emb_vec = list(emb_dict.values())
+    print("crawl-300d-2M.pkl loadedd  ***********************************")
+    # print("vocab_list type ****::::****=> ",type(vocab_list))
+    # print("vocab_list length ****::::****=> ",len(vocab_list))
+    # print("vocab_list value 0 element ****::::****=> ",vocab_list[0])
+    # print("emp_vec type ****::::****=> ",type(emb_vec))
+    # print("emb_vec length ****::::****=> ",len(emb_vec))
+    # print("emb_vec[0] value 0 element ****::::****=> ",emb_vec[0])
     return emb_dict, emb_vec, vocab_list, len(vocab_list)
 
 def write_vocab_info(fname, vocab_size, vocab_list):
@@ -227,7 +244,9 @@ def convert_examples_to_features_disc_eval(examples, label_list, max_seq_length,
             tokens = tokens[:max_seq_length]
         if example.flaw_labels is not None:
             # print("example.flaw_labels is not None: block ")
-            if example.flaw_labels == '': flaw_ids = [-1]
+            if example.flaw_labels == '': 
+                flaw_ids = [-1]
+                # print("example.flaw_labels empty")
             else:
                 # print("example.flaw_labels", example.flaw_labels)
                 #flaw_ids = [int(x) for x in (example.flaw_labels).split(',')]
@@ -820,7 +839,7 @@ class SST2Processor(DataProcessor):
             # print(line)
             text_a = line[0]
             label = line[1]
-            if len(line) == 3: flaw_labels = line[2]
+            if len(line) >= 3: flaw_labels = line[2]
             examples.append(
                 InputExample(guid=guid, text_a=text_a, text_b=None, label=label, flaw_labels=flaw_labels))
         return examples
@@ -958,8 +977,8 @@ def query_most_similar_word_id_from_embedding(p, emb, n):
     # print("Value of n: ", n)
     # print("type of emb: ", type(emb))
     # print("PRINTING emb: ", emb)
-    finding = p.knn_query([emb], k=1)
-    #labels, distances = p.knn_query([emb], k=n)
+    finding = p.knn_query([emb], k=n)
+    # labels, distances = p.knn_query([emb], k=n)
     #return finding[0][0]
     #print("labels: ", labels[0])
     #print("distances: ",distances[0])
@@ -1103,9 +1122,9 @@ def replace_token(token_ids, flaw_labels, correct_tokens, i2w):
         #flaw_labels = [x for x in flaw_labels if x != 0] 
         while len(flaw_labels) > 1 and flaw_labels[-1] == 0: flaw_labels = flaw_labels[:-1]
 
-        # print("flaw_labels:{}".format(flaw_labels))
-        # print("tokens:{}".format(tokens))
-        # print("correct_tokens:{}".format(correct_tokens))
+        print("flaw_labels:{}".format(flaw_labels))
+        print("tokens:{}".format(tokens))
+        print("correct_tokens:{}".format(correct_tokens))
 
         try:
             for i in range(len(flaw_labels)):

@@ -1,0 +1,132 @@
+Better speed can be achieved with apex installed from https://www.github.com/nvidia/apex.
+04/25/2021 02:59:32 - INFO - bert_utils -   device: cuda n_gpu: 1, distributed training: False, 16-bits training: False
+04/25/2021 02:59:33 - INFO - file_utils -   https://s3.amazonaws.com/models.huggingface.co/bert/bert-base-uncased-vocab.txt not found in cache, downloading to /tmp/tmprfucgjcl
+100% 231508/231508 [00:00<00:00, 674807.03B/s]
+04/25/2021 02:59:34 - INFO - file_utils -   copying /tmp/tmprfucgjcl to cache at /root/.pytorch_pretrained_bert/26bc1ad6c0ac742e9b52263248f6d0f00068293b33709fae12320c0e35ccfbbb.542ce4285a40d23a559526243235df47c5f75c197f04f37d1a0c124c32c9a084
+04/25/2021 02:59:34 - INFO - file_utils -   creating metadata file for /root/.pytorch_pretrained_bert/26bc1ad6c0ac742e9b52263248f6d0f00068293b33709fae12320c0e35ccfbbb.542ce4285a40d23a559526243235df47c5f75c197f04f37d1a0c124c32c9a084
+04/25/2021 02:59:34 - INFO - file_utils -   removing temp file /tmp/tmprfucgjcl
+04/25/2021 02:59:34 - INFO - tokenization -   loading vocabulary file https://s3.amazonaws.com/models.huggingface.co/bert/bert-base-uncased-vocab.txt from cache at /root/.pytorch_pretrained_bert/26bc1ad6c0ac742e9b52263248f6d0f00068293b33709fae12320c0e35ccfbbb.542ce4285a40d23a559526243235df47c5f75c197f04f37d1a0c124c32c9a084
+04/25/2021 02:59:34 - INFO - file_utils -   https://s3.amazonaws.com/models.huggingface.co/bert/bert-base-uncased.tar.gz not found in cache, downloading to /tmp/tmpuqc_cmk_
+100% 407873900/407873900 [00:15<00:00, 26404393.60B/s]
+04/25/2021 02:59:50 - INFO - file_utils -   copying /tmp/tmpuqc_cmk_ to cache at /root/.pytorch_pretrained_bert/distributed_-1/9c41111e2de84547a463fd39217199738d1e3deb72d4fec4399e6e241983c6f0.ae3cef932725ca7a30cdcb93fc6e09150a55e2a130ec7af63975a16c153ae2ba
+04/25/2021 02:59:51 - INFO - file_utils -   creating metadata file for /root/.pytorch_pretrained_bert/distributed_-1/9c41111e2de84547a463fd39217199738d1e3deb72d4fec4399e6e241983c6f0.ae3cef932725ca7a30cdcb93fc6e09150a55e2a130ec7af63975a16c153ae2ba
+04/25/2021 02:59:51 - INFO - file_utils -   removing temp file /tmp/tmpuqc_cmk_
+04/25/2021 02:59:51 - INFO - bert_utils -   loading archive file https://s3.amazonaws.com/models.huggingface.co/bert/bert-base-uncased.tar.gz from cache at /root/.pytorch_pretrained_bert/distributed_-1/9c41111e2de84547a463fd39217199738d1e3deb72d4fec4399e6e241983c6f0.ae3cef932725ca7a30cdcb93fc6e09150a55e2a130ec7af63975a16c153ae2ba
+04/25/2021 02:59:51 - INFO - bert_utils -   extracting archive file /root/.pytorch_pretrained_bert/distributed_-1/9c41111e2de84547a463fd39217199738d1e3deb72d4fec4399e6e241983c6f0.ae3cef932725ca7a30cdcb93fc6e09150a55e2a130ec7af63975a16c153ae2ba to temp dir /tmp/tmpwa8fgc01
+04/25/2021 02:59:54 - INFO - bert_utils -   Model config {
+  "attention_probs_dropout_prob": 0.1,
+  "hidden_act": "gelu",
+  "hidden_dropout_prob": 0.1,
+  "hidden_size": 768,
+  "initializer_range": 0.02,
+  "intermediate_size": 3072,
+  "max_position_embeddings": 512,
+  "num_attention_heads": 12,
+  "num_hidden_layers": 12,
+  "type_vocab_size": 2,
+  "vocab_size": 30522
+}
+
+04/25/2021 02:59:57 - INFO - bert_utils -   Weights of BertForDiscriminator not initialized from pretrained model: ['discriminator.weight', 'discriminator.bias']
+04/25/2021 02:59:57 - INFO - bert_utils -   Weights from pretrained model not used in BertForDiscriminator: ['cls.predictions.bias', 'cls.predictions.transform.dense.weight', 'cls.predictions.transform.dense.bias', 'cls.predictions.decoder.weight', 'cls.seq_relationship.weight', 'cls.seq_relationship.bias', 'cls.predictions.transform.LayerNorm.weight', 'cls.predictions.transform.LayerNorm.bias']
+data_dir value :  data/sst-2/disc
+tsv not in data_dir
+04/25/2021 03:00:05 - INFO - bert_utils -   *** Example ***
+04/25/2021 03:00:05 - INFO - bert_utils -   tokens: and if thT hours wins ` best picture ' i jst might .
+04/25/2021 03:00:05 - INFO - bert_utils -   token_ids: 1 2 3 4 5 6 7 8 9 10 11 12 13 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+04/25/2021 03:00:05 - INFO - bert_utils -   input_ids: 101 1998 2065 16215 2102 2847 5222 1036 2190 3861 1005 1045 1046 3367 2453 1012 102 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+04/25/2021 03:00:05 - INFO - bert_utils -   input_mask: 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+04/25/2021 03:00:05 - INFO - bert_utils -   flaw_labels: 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+04/25/2021 03:00:05 - INFO - bert_utils -   flaw_ids: 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+04/25/2021 03:00:05 - INFO - bert_utils -   flaw_ids_cut: 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+04/25/2021 03:00:05 - INFO - bert_utils -   chunks: 1 1 1 2 1 1 1 1 1 1 1 2 1 1 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+04/25/2021 03:00:05 - INFO - bert_utils -   *** Example ***
+04/25/2021 03:00:05 - INFO - bert_utils -   tokens: just a bloody mess .
+04/25/2021 03:00:05 - INFO - bert_utils -   token_ids: 14 15 16 17 13 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+04/25/2021 03:00:05 - INFO - bert_utils -   input_ids: 101 2074 1037 6703 6752 1012 102 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+04/25/2021 03:00:05 - INFO - bert_utils -   input_mask: 1 1 1 1 1 1 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+04/25/2021 03:00:05 - INFO - bert_utils -   flaw_labels: 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+04/25/2021 03:00:05 - INFO - bert_utils -   flaw_ids: 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+04/25/2021 03:00:05 - INFO - bert_utils -   flaw_ids_cut: 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+04/25/2021 03:00:05 - INFO - bert_utils -   chunks: 1 1 1 1 1 1 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+04/25/2021 03:00:05 - INFO - bert_utils -   *** Example ***
+04/25/2021 03:00:05 - INFO - bert_utils -   tokens: you have to pay attention to follow all the stories , but they 're each interesting .
+04/25/2021 03:00:05 - INFO - bert_utils -   token_ids: 18 19 20 21 22 20 23 24 25 26 27 28 29 30 31 32 13 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+04/25/2021 03:00:05 - INFO - bert_utils -   input_ids: 101 2017 2031 2000 3477 3086 2000 3582 2035 1996 3441 1010 2021 2027 1005 2128 2169 5875 1012 102 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+04/25/2021 03:00:05 - INFO - bert_utils -   input_mask: 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+04/25/2021 03:00:05 - INFO - bert_utils -   flaw_labels: 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+04/25/2021 03:00:05 - INFO - bert_utils -   flaw_ids: 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+04/25/2021 03:00:05 - INFO - bert_utils -   flaw_ids_cut: 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+04/25/2021 03:00:05 - INFO - bert_utils -   chunks: 1 1 1 1 1 1 1 1 1 1 1 1 1 1 2 1 1 1 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+04/25/2021 03:00:06 - INFO - bert_utils -   ***** Running evaluation *****
+04/25/2021 03:00:06 - INFO - bert_utils -     Num examples = 1820
+04/25/2021 03:00:06 - INFO - bert_utils -     Num token vocab = 9535
+04/25/2021 03:00:06 - INFO - bert_utils -     Batch size = 32
+Epoch:   0% 0/1 [00:00<?, ?it/s]
+Evaluating:   0% 0/57 [00:00<?, ?it/s]
+Evaluating:   2% 1/57 [00:00<00:15,  3.51it/s]
+Evaluating:   4% 2/57 [00:00<00:13,  3.99it/s]
+Evaluating:   5% 3/57 [00:00<00:12,  4.47it/s]
+Evaluating:   7% 4/57 [00:00<00:10,  4.89it/s]
+Evaluating:   9% 5/57 [00:00<00:09,  5.23it/s]
+Evaluating:  11% 6/57 [00:01<00:09,  5.50it/s]
+Evaluating:  12% 7/57 [00:01<00:08,  5.71it/s]
+Evaluating:  14% 8/57 [00:01<00:08,  5.86it/s]
+Evaluating:  16% 9/57 [00:01<00:08,  5.95it/s]
+Evaluating:  18% 10/57 [00:01<00:07,  6.01it/s]
+Evaluating:  19% 11/57 [00:01<00:07,  6.07it/s]
+Evaluating:  21% 12/57 [00:02<00:07,  6.13it/s]
+Evaluating:  23% 13/57 [00:02<00:07,  6.16it/s]
+Evaluating:  25% 14/57 [00:02<00:06,  6.19it/s]
+Evaluating:  26% 15/57 [00:02<00:06,  6.18it/s]
+Evaluating:  28% 16/57 [00:02<00:06,  6.20it/s]
+Evaluating:  30% 17/57 [00:02<00:06,  6.22it/s]
+Evaluating:  32% 18/57 [00:03<00:06,  6.23it/s]
+Evaluating:  33% 19/57 [00:03<00:06,  6.23it/s]
+Evaluating:  35% 20/57 [00:03<00:05,  6.24it/s]
+Evaluating:  37% 21/57 [00:03<00:05,  6.23it/s]
+Evaluating:  39% 22/57 [00:03<00:05,  6.23it/s]
+Evaluating:  40% 23/57 [00:03<00:05,  6.24it/s]
+Evaluating:  42% 24/57 [00:03<00:05,  6.25it/s]
+Evaluating:  44% 25/57 [00:04<00:05,  6.26it/s]
+Evaluating:  46% 26/57 [00:04<00:04,  6.26it/s]
+Evaluating:  47% 27/57 [00:04<00:04,  6.26it/s]
+Evaluating:  49% 28/57 [00:04<00:04,  6.26it/s]
+Evaluating:  51% 29/57 [00:04<00:04,  6.26it/s]
+Evaluating:  53% 30/57 [00:04<00:04,  6.27it/s]
+Evaluating:  54% 31/57 [00:05<00:04,  6.27it/s]
+Evaluating:  56% 32/57 [00:05<00:03,  6.26it/s]
+Evaluating:  58% 33/57 [00:05<00:03,  6.26it/s]
+Evaluating:  60% 34/57 [00:05<00:03,  6.25it/s]
+Evaluating:  61% 35/57 [00:05<00:03,  6.26it/s]
+Evaluating:  63% 36/57 [00:05<00:03,  6.26it/s]
+Evaluating:  65% 37/57 [00:06<00:03,  6.26it/s]
+Evaluating:  67% 38/57 [00:06<00:03,  6.26it/s]
+Evaluating:  68% 39/57 [00:06<00:02,  6.26it/s]
+Evaluating:  70% 40/57 [00:06<00:02,  6.05it/s]
+Evaluating:  72% 41/57 [00:06<00:02,  6.11it/s]
+Evaluating:  74% 42/57 [00:06<00:02,  6.16it/s]
+Evaluating:  75% 43/57 [00:07<00:02,  6.19it/s]
+Evaluating:  77% 44/57 [00:07<00:02,  6.21it/s]
+Evaluating:  79% 45/57 [00:07<00:01,  6.23it/s]
+Evaluating:  81% 46/57 [00:07<00:01,  6.24it/s]
+Evaluating:  82% 47/57 [00:07<00:01,  6.25it/s]
+Evaluating:  84% 48/57 [00:07<00:01,  6.25it/s]
+Evaluating:  86% 49/57 [00:07<00:01,  6.26it/s]
+Evaluating:  88% 50/57 [00:08<00:01,  6.26it/s]
+Evaluating:  89% 51/57 [00:08<00:00,  6.26it/s]
+Evaluating:  91% 52/57 [00:08<00:00,  6.27it/s]
+Evaluating:  93% 53/57 [00:08<00:00,  6.28it/s]
+Evaluating:  95% 54/57 [00:08<00:00,  6.27it/s]
+Evaluating:  96% 55/57 [00:08<00:00,  6.26it/s]
+Evaluating:  98% 56/57 [00:09<00:00,  6.26it/s]
+Evaluating: 100% 57/57 [00:09<00:00,  6.16it/s]
+/usr/local/lib/python3.7/dist-packages/sklearn/metrics/_classification.py:1272: UndefinedMetricWarning: Precision is ill-defined and being set to 0.0 due to no predicted samples. Use `zero_division` parameter to control this behavior.
+  _warn_prf(average, modifier, msg_start, len(result))
+04/25/2021 03:00:33 - INFO - bert_utils -   ***** Eval results *****
+04/25/2021 03:00:33 - INFO - bert_utils -     eval_acc = 0.8905735356135223
+04/25/2021 03:00:33 - INFO - bert_utils -     eval_f1 = 0.0
+04/25/2021 03:00:33 - INFO - bert_utils -     eval_loss = 0.26610878632779705
+04/25/2021 03:00:33 - INFO - bert_utils -     eval_precision = 0.0
+04/25/2021 03:00:33 - INFO - bert_utils -     eval_recall = 0.0
+Epoch: 100% 1/1 [00:27<00:00, 27.11s/it]

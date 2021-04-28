@@ -203,8 +203,9 @@ def main():
         write_vocab_info(args.word_embedding_info, emb_vocab_size, vocab_list)
     if args.do_eval:
         emb_vocab_size, vocab_list = load_vocab_info(args.word_embedding_info)
-        #emb_dict, emb_vec, vocab_list, emb_vocab_size = load_vectors(args.word_embedding_file)
+        # emb_dict, emb_vec, vocab_list, emb_vocab_size = load_vectors(args.word_embedding_file)
         #write_vocab_info(args.word_embedding_info, emb_vocab_size, vocab_list)
+
     logger.info("loading p index ...")
     if not os.path.exists(args.index_path):      
         p = load_embeddings_and_save_index(range(emb_vocab_size), emb_vec, args.index_path)
@@ -429,6 +430,26 @@ def main():
                 with open(output_file,"a") as csv_file:
 
                     for i in range(len(label_id)):
+                        
+                        # if args.verbose and i < 5:
+                        #     print("masks[i]:   ",masks[i])
+                        #     print("logits[i]:   ",logits[i])
+                        #     print("vocab_list:   ",len(vocab_list))
+
+                        # if args.verbose and i < 5:
+                        #     tokens_id_test = w2i["say"]
+                        #     tokens_emb_test1 = emb_vec[tokens_id_test]
+                        #     tokens_emb_test = emb_dict["say"]
+                        #     finding_test = p.knn_query([tokens_emb_test], k=1)
+                        #     print("tokens_id_test:   ", tokens_id_test)
+                        #     print("tokens_emb_test1:   ", tokens_emb_test1)
+                        #     print("tokens_emb_test:   ", tokens_emb_test)
+                        #     print("finding_test[0][0]:   ", finding_test[0][0][0])
+                        #     print("finding_test:   ", finding_test)
+                        #     print("vocab_list[finding_test[0][0]]:   ", vocab_list[finding_test[0][0][0]])
+                        #     print("masks[i]:   ",masks[i])
+                        #     print("logits[i]:   ",logits[i])
+                        #     print("vocab_list:   ",len(vocab_list))
                         
                         correct_tokens = look_up_words(logits[i], masks[i], vocab_list, p) 
                         token_new = replace_token(token_ids[i], flaw_labels[i], correct_tokens, i2w)

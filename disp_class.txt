@@ -1,0 +1,30 @@
+Better speed can be achieved with apex installed from https://www.github.com/nvidia/apex.
+04/25/2021 16:15:47 - INFO - bert_utils -   device: cpu n_gpu: 1, distributed training: False, 16-bits training: False
+04/25/2021 16:15:47 - INFO - tokenization -   loading vocabulary file https://s3.amazonaws.com/models.huggingface.co/bert/bert-base-uncased-vocab.txt from cache at /root/.pytorch_pretrained_bert/26bc1ad6c0ac742e9b52263248f6d0f00068293b33709fae12320c0e35ccfbbb.542ce4285a40d23a559526243235df47c5f75c197f04f37d1a0c124c32c9a084
+04/25/2021 16:15:47 - INFO - bert_utils -   loading archive file https://s3.amazonaws.com/models.huggingface.co/bert/bert-base-uncased.tar.gz from cache at /root/.pytorch_pretrained_bert/distributed_-1/9c41111e2de84547a463fd39217199738d1e3deb72d4fec4399e6e241983c6f0.ae3cef932725ca7a30cdcb93fc6e09150a55e2a130ec7af63975a16c153ae2ba
+04/25/2021 16:15:47 - INFO - bert_utils -   extracting archive file /root/.pytorch_pretrained_bert/distributed_-1/9c41111e2de84547a463fd39217199738d1e3deb72d4fec4399e6e241983c6f0.ae3cef932725ca7a30cdcb93fc6e09150a55e2a130ec7af63975a16c153ae2ba to temp dir /tmp/tmpxazqlnku
+04/25/2021 16:15:51 - INFO - bert_utils -   Model config {
+  "attention_probs_dropout_prob": 0.1,
+  "hidden_act": "gelu",
+  "hidden_dropout_prob": 0.1,
+  "hidden_size": 768,
+  "initializer_range": 0.02,
+  "intermediate_size": 3072,
+  "max_position_embeddings": 512,
+  "num_attention_heads": 12,
+  "num_hidden_layers": 12,
+  "type_vocab_size": 2,
+  "vocab_size": 30522
+}
+
+04/25/2021 16:15:54 - INFO - bert_utils -   Weights of BertForClassifier not initialized from pretrained model: ['classifier.weight', 'classifier.bias']
+04/25/2021 16:15:54 - INFO - bert_utils -   Weights from pretrained model not used in BertForClassifier: ['cls.predictions.bias', 'cls.predictions.transform.dense.weight', 'cls.predictions.transform.dense.bias', 'cls.predictions.decoder.weight', 'cls.seq_relationship.weight', 'cls.seq_relationship.bias', 'cls.predictions.transform.LayerNorm.weight', 'cls.predictions.transform.LayerNorm.bias']
+04/25/2021 16:15:57 - INFO - bert_utils -   ***** Running evaluation *****
+04/25/2021 16:15:57 - INFO - bert_utils -     Num examples = 871
+04/25/2021 16:15:57 - INFO - bert_utils -     Batch size = 8
+Evaluating: 100% 109/109 [02:13<00:00,  1.22s/it]
+04/25/2021 16:18:11 - INFO - bert_utils -   ***** Eval results *****
+04/25/2021 16:18:11 - INFO - bert_utils -     eval_accuracy = 0.9150401836969001
+04/25/2021 16:18:11 - INFO - bert_utils -     eval_loss = 0.5139787212218994
+04/25/2021 16:18:11 - INFO - bert_utils -     global_step = 0
+04/25/2021 16:18:11 - INFO - bert_utils -     loss = None

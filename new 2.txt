@@ -1,0 +1,10 @@
+                        if args.verbose and i < 5:
+                            tokens_id_test = w2i["say"]
+                            tokens_test = p.get_items(tokens_id_test)
+                            finding_test = p.knn_query([tokens_test], k=1)
+                            print("tokens_id_test:   ", tokens_id_test)
+                            print("tokens_test:   ", tokens_test)
+                            print("finding_test:   ", finding_test)
+                            print("masks[i]:   ",masks[i])
+                            print("logits[i]:   ",logits[i])
+                            print("vocab_list:   ",len(vocab_list))

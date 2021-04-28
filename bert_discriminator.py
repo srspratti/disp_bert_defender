@@ -229,7 +229,7 @@ def main():
         logger.info("Loading word embeddings ... ")
         emb_dict, emb_vec, vocab_list, emb_vocab_size = load_vectors(args.word_embedding_file)
         if not os.path.exists(args.index_path):
-            
+            logger.info("save word embeddings and save index... ")
             write_vocab_info(args.word_embedding_info, emb_vocab_size, vocab_list)
             p = load_embeddings_and_save_index(range(emb_vocab_size), emb_vec, args.index_path)
         else:
@@ -431,6 +431,12 @@ def main():
     
             for token_ids, input_ids, input_mask, flaw_ids, flaw_labels, label_id, chunks in tqdm(eval_dataloader, desc="Evaluating"):
                 
+                token_ids_test = token_ids.to('cpu').numpy()
+                # for j in range(6):
+                #     print("token_ids[j]", token_ids[j])
+                #     print("token_ids_evals", [i2w[x] for x in token_ids_test[j] if x != 0])
+                #     print("label_id", label_id[j])
+                
                 token_ids = token_ids.to(device)
                 input_ids = input_ids.to(device)
                 input_mask = input_mask.to(device)
@@ -473,19 +479,20 @@ def main():
                 true_logits = []
                 if args.verbose:
                     print("length of flaw_ids: ",len(flaw_ids))
+                    print("flaw_ids: ",flaw_ids)
                 
                 for i in range(len(flaw_ids)):
                     tmp = [0] * len(flaw_logits[i])
+
+                    for j in range(len(flaw_ids[0])):
+                        if flaw_ids[i][j] == 0: break
+                        if flaw_ids[i][j] >= len(tmp): continue
+                        tmp[flaw_ids[i][j]] = 1
                     if args.verbose:    
                         print("tmp: ",tmp)
                         print("len of tmp: ",len(tmp))
                         print("length of flaw_ids of i : ",len(flaw_ids[i]))
                         print("flaw_ids[i]: ",flaw_ids[i])
-                    
-                    for j in range(len(flaw_ids[0])):
-                        if flaw_ids[i][j] == 0: break
-                        if flaw_ids[i][j] >= len(tmp): continue
-                        tmp[flaw_ids[i][j]] = 1
 
                     true_logits.append(tmp)
 
@@ -494,8 +501,13 @@ def main():
 
                 predictions += true_logits # Original 
                 truths += flaw_logits # Original 
-                #predictions += flaw_logits # for trouble-shooting
-                #truths += true_logits # for trouble-shooting
+                if args.verbose:
+                    print("true_logits: ",true_logits)
+                    print("flaw_logits: ",flaw_logits)
+                    print("predictions: ",predictions)
+                    print("truths: ",truths)
+                # predictions += flaw_logits # for trouble-shooting
+                # truths += true_logits # for trouble-shooting
                 eval_loss += tmp_eval_loss.mean().item()
                 nb_eval_examples += input_ids.size(0)
                 nb_eval_steps += 1

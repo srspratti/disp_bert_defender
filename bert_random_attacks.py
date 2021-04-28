@@ -329,16 +329,22 @@ def main():
     
     with open(output_file, "w") as csv_file:
         writer = csv.writer(csv_file, delimiter='\t') #
-        writer.writerow(["sentence-with-flaw_tokens", "label", "flaw_ids", "ground-truth-sentence","ground-truth-token_ids","Index_Ids", "flaw_labels"])
+        # writer.writerow(["sentence-with-flaw_tokens", "label", "flaw_ids", "ground-truth-sentence","ground-truth-token_ids","Index_Ids", "flaw_labels"])
         #writer.writerow([all_tokens[step], all_label_id[step], flaw_ids_lst, flaw_labels_lst])  # need to write the token
+        i = 0
         for step, batch in enumerate(tqdm(dataloader_for_attack, desc="enumerate_attacks_disp")):
             
         
             batch = tuple(t.to(device) for t in batch)
             
-            tokens,_ = batch #, label_id, ngram_ids, ngram_labels, ngram_masks
-            tokens = tokens.to('cpu').numpy() 
+            tokens, token_label_ids = batch #, label_id
             
+            tokens = tokens.to('cpu').numpy()
+            token_label_ids = token_label_ids.to('cpu').numpy()
+            if i < 6:
+                print("tokens", tokens)
+                print("label_id", token_label_ids)
+            i+=1
             
             features_with_flaws, all_flaw_tokens, all_token_idx, all_truth_tokens = convert_examples_to_features_flaw_attacks_disp(tokens,
                                                                             args.max_seq_length, args.max_ngram_length,tokenizer, i2w,attack_type,
@@ -361,6 +367,8 @@ def main():
             all_truth_tokens_flat = all_truth_tokens_flat.strip("''").strip("``")
             # print("all_truth_tokens_flat: ", all_truth_tokens_flat)
             #writer.writerow(["sentence-with-flaw_tokens", "label", "flaw_ids", "ground-truth-sentence","ground-truth-token_ids","Index_Ids", "flaw_labels"])
-            writer.writerow([all_flaw_tokens, all_label_id[step],  all_token_idx,all_truth_tokens_flat,all_tokens[step], flaw_ids_lst, flaw_labels_lst])
+            # writer.writerow([all_flaw_tokens, token_label_ids[0],  all_token_idx,all_truth_tokens_flat,all_tokens[step], flaw_ids_lst, flaw_labels_lst])
+            # writer.writerow([all_flaw_tokens, all_label_id[step],  all_token_idx,all_truth_tokens_flat,all_tokens[step], flaw_ids_lst, flaw_labels_lst])
+            writer.writerow([all_flaw_tokens, token_label_ids[0],  all_token_idx])
 if __name__ == "__main__":
     main()
