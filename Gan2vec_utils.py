@@ -65,6 +65,25 @@ def _read_tsv(input_file, quotechar=None):
             lines.append(line)
         return lines
 
+def _create_examples_clean(lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for (i, line) in enumerate(lines):
+            #print("line :", line)
+            #print("line[0]: ", line[0])
+            #print("line[1]", line[1])
+            flaw_labels = None
+            if i == 0:
+                continue
+            guid = "%s-%s" % (set_type, i)
+            text_raw = line[0]
+            text_a = clean_text(text_raw)
+            label = line[1]
+            if len(line) > 2: flaw_labels = line[2]
+            examples.append(
+                InputExample(guid=guid, text_a=text_a, text_b=None, label=label, flaw_labels=flaw_labels))
+        return examples
+
 def _create_examples(lines, set_type):
     """Creates examples for the training and dev sets."""
     examples = []
@@ -83,6 +102,12 @@ def _create_examples(lines, set_type):
             InputExample(guid=guid, text_a=text_a, text_b=None, label=label, flaw_labels=flaw_labels))
     return examples
 
+def get_train_examples_clean(DATA_DIR):
+    """See base class."""
+    if 'tsv' in DATA_DIR:
+        return _create_examples_clean(_read_tsv(DATA_DIR), "train")
+    else:
+        return _create_examples_clean(_read_tsv(os.path.join(DATA_DIR, "train.tsv")), "train")
 
 def get_train_examples(DATA_DIR):
     """See base class."""
@@ -97,6 +122,17 @@ def get_text_from_train_examples(train_examples):
         all_text_train_examples.append(example.text_a)
     return all_text_train_examples
 
+def get_text_and_labels_flaw_labels_examples(train_examples, label_list):
+    all_text_train_examples=[]
+    all_labels_train_examples=[]
+    all_flaw_labels_train_examples=[]
+    label_map = {label: i for i, label in enumerate(label_list)}
+    for example in train_examples:
+        all_text_train_examples.append(example.text_a)
+        all_flaw_labels_train_examples.append(example.flaw_labels)
+        all_labels_train_examples.append(label_map[example.label])
+    return all_text_train_examples, all_labels_train_examples, all_flaw_labels_train_examples
+
 def get_text_and_labels_train_examples(train_examples, label_list):
     all_text_train_examples=[]
     all_labels_train_examples=[]
@@ -106,32 +142,45 @@ def get_text_and_labels_train_examples(train_examples, label_list):
         all_labels_train_examples.append(label_map[example.label])
     return all_text_train_examples, all_labels_train_examples
 
+
 # from gensim.models import KeyedVectors
 # word_vectors.save('vectors.kv')
 # reloaded_word_vectors = KeyedVectors.load('vectors.kv')
 
 def get_data_encoder(data_dir, label_list):
-    train_examples = get_train_examples(data_dir)
+    #train_examples = get_train_examples(data_dir)
+    train_examples = get_train_examples_clean(data_dir)
     text, labels = get_text_and_labels_train_examples(train_examples, label_list)
     text_new = [txt.split() for txt in text]
     encoder = FastText(text_new, min_count=1, size=128)
     #encoder = Word2Vec.load(os.path.join('/tmp/pycharm_project_196/GAN2vec/data/w2v_haiku.model'))
     save_path = os.getcwd() + '/data/sst-2'
     #Word2Vec.save('/sst-2_gensim_word2vec.model')
-    encoder.save('/sst-2_gensim_word2vec.model')
+    encoder.save(save_path+'/sst-2_gensim_word2vec.model')
     # model = gensim.models.Word2Vec.load("modelName.model")
     return text_new, text, encoder, labels
+
+def get_data_flaw_labels_encoder(data_dir, label_list):
+    #train_examples = get_train_examples(data_dir)
+    train_examples = get_train_examples_clean(data_dir)
+    #text, labels = get_text_and_labels_train_examples(train_examples, label_list)
+    text, labels, flaw_labels = get_text_and_labels_flaw_labels_examples(train_examples, label_list)
+    text_new = [txt.split() for txt in text]
+    encoder = FastText(text_new, min_count=1, size=128)
+    #encoder = Word2Vec.load(os.path.join('/tmp/pycharm_project_196/GAN2vec/data/w2v_haiku.model'))
+    save_path = os.getcwd() + '/data/sst-2'
+    #Word2Vec.save('/sst-2_gensim_word2vec.model')
+    encoder.save(save_path+'/sst-2_gensim_word2vec.model')
+    # model = gensim.models.Word2Vec.load("modelName.model")
+    return text_new, text, encoder, labels, flaw_labels
+
+
+
+
 #adversarial_attacks_for_dis(start=rnd, end=rnd+2, encoder=encoder, text=text, processor=processor, label_list=label_list)
 
 def adversarial_attacks_for_dis(start , end, encoder, text, processor, label_list, data_dir, tokenizer): # parameters : text
-    # ........code here................
 
-    # text_batch + labels
-    # from train.tsv = > text_a and labels
-
-    # text_a and labels
-    # from train.tsv = get_train_examples(_create_examples(read_tsv)))
-    #processor.get_train_examples_for_attacks(args.data_dir, start, end)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     max_seq_length = 6
     max_ngram_length= None
@@ -206,8 +255,9 @@ def adversarial_attacks_for_dis(start , end, encoder, text, processor, label_lis
 
     # print("all_flaw_tokens type ", type(all_flaw_tokens))
     # print("all_flaw_tokens type ", len(all_flaw_tokens))
-    # print("all_batch_flaw_tokens type ", type(all_batch_flaw_tokens))
-    # print("all_batch_flaw_tokens len ", len(all_batch_flaw_tokens))
+    print("all_batch_flaw_tokens type ", type(all_batch_flaw_tokens))
+    print("all_batch_flaw_tokens len ", len(all_batch_flaw_tokens))
+    print("all_batch_flaw_tokens value : ", all_batch_flaw_tokens)
     # print("all_batch_flaw_labels type ", type(all_batch_flaw_labels))
     # print("all_batch_flaw_labels len ", len(all_batch_flaw_labels))
     batch_tx = []
@@ -275,6 +325,49 @@ def adversarial_attacks_for_dis(start , end, encoder, text, processor, label_lis
     # flaw_ids_or_flaw_labels
     # return real_adv, all_flaw_labels_truth
     return X_t, all_batch_flaw_labels_truth_t_s
+
+def get_sentence_to_max_len(line, max_len):
+        line_words = line.split()
+        new_line = " ".join(line_words[:max_len])
+        return new_line
+
+def get_packed_sentences(text, start , end, encoder): # parameters : text
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    max_seq_length = 6
+    batch_tx = []
+    BATCH_SEQ_LEN = []
+    Xtype = torch.FloatTensor
+    start_idx = (start-1)
+    end_idx = (end-1)
+    while start_idx < end_idx:
+        line_uncut = text[start_idx]
+        line = get_sentence_to_max_len(line=line_uncut,max_len=max_seq_length)
+        SEQ_LEN = len(line.split())
+        line = line.lower()
+
+        X = get_target_representation(line, encoder)
+        # tx = Variable(torch.from_numpy(np.array([X]))).type(Xtype)
+
+        # batch_tx.append(tx)
+        batch_tx.append(X)
+        print("X Length ", len(X))
+
+        BATCH_SEQ_LEN.append(SEQ_LEN)
+        start_idx=start_idx+1
+        # print("X :", type(X))
+        # print("tx :", type(tx))
+
+    # print("batch_tx : ", len(batch_tx))
+    # print("BATCH_SEQ_LEN : ", BATCH_SEQ_LEN)
+    print("BATCH_SEQ_LEN : ", BATCH_SEQ_LEN)
+    X_t = torch.tensor(batch_tx, dtype=torch.float)
+    print("X_t shape: ", X_t.shape)
+
+    # flaw_ids_or_flaw_labels
+    # return real_adv, all_flaw_labels_truth
+    return X_t
+
 
 
 def get_lines_encoder(start, end, text, encoder):
@@ -508,7 +601,7 @@ def loss_nll(bin_output, bin_label, multi_output, multi_label, lam=0.5):
 def create_vocab(data_dir,text, background_train=False, cv_path=""):
 
         #train_examples = get_train_examples(data_dir)
-        global w2i, i2w, CHAR_VOCAB
+        global w2i, i2w, CHAR_VOCAB, WORD_LIMIT
         #lines = get_lines(data_dir)
         #print("Text : ", text)
         for line in text:
@@ -525,15 +618,22 @@ def create_vocab(data_dir,text, background_train=False, cv_path=""):
         if background_train:
             CHAR_VOCAB = pickle.load(open(cv_path, 'rb'))
         word_list = sorted(w2i.items(), key=lambda x: x[1], reverse=True)
+        if len(word_list) < WORD_LIMIT :
+            WORD_LIMIT = len(word_list)
         word_list = word_list[:WORD_LIMIT]  # only need top few words
-
+        # print("Word list :  type : ", type(word_list))
+        # print("Word list : length  : ", len(word_list))
+        # print("word list : ", word_list)
         # remaining words are UNKs ... sorry!
         w2i = defaultdict(lambda: WORD_LIMIT)  # default id is UNK ID
         w2i['<PAD>'] = INPUT_PAD_IDX  # INPUT_PAD_IDX is 0
         i2w[INPUT_PAD_IDX] = '<PAD>'
         for idx in range(WORD_LIMIT - 1):
+            print("idx : ", idx)
             w2i[word_list[idx][0]] = idx + 1
             i2w[idx + 1] = word_list[idx][0]
+            # print("word_list[idx][0]: ", word_list[idx][0])
+            # print("w2i[word_list[idx][0]] : ", w2i[word_list[idx][0]])
 
         pickle.dump(dict(w2i), open("./GAN2vec_RobGAN_data_oup/vocab/" + task_name + "w2i_" + str(WORD_LIMIT) + ".p", 'wb'))
         pickle.dump(dict(i2w),
