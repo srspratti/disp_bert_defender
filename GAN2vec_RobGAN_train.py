@@ -228,6 +228,25 @@ def main():
                 InputExample(guid=guid, text_a=text_a, text_b=None, label=label, flaw_labels=flaw_labels))
         return examples
 
+    def _create_examples_clean(lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        for (i, line) in enumerate(lines):
+            #print("line :", line)
+            #print("line[0]: ", line[0])
+            #print("line[1]", line[1])
+            flaw_labels = None
+            if i == 0:
+                continue
+            guid = "%s-%s" % (set_type, i)
+            text_raw = line[0]
+            text_a = clean_text(text_raw)
+            label = line[1]
+            if len(line) > 2: flaw_labels = line[2]
+            examples.append(
+                InputExample(guid=guid, text_a=text_a, text_b=None, label=label, flaw_labels=flaw_labels))
+        return examples
+
     def _read_tsv(input_file, quotechar=None):
         """Reads a tab separated value file."""
         with open(input_file, "r") as f:
@@ -245,6 +264,14 @@ def main():
             return _create_examples(_read_tsv(DATA_DIR), "train")
         else:
             return _create_examples(
+                _read_tsv(os.path.join(DATA_DIR, "train.tsv")), "train")
+
+    def get_train_examples_clean(DATA_DIR):
+        """See base class."""
+        if 'tsv' in DATA_DIR:
+            return _create_examples_clean(_read_tsv(DATA_DIR), "train")
+        else:
+            return _create_examples_clean(
                 _read_tsv(os.path.join(DATA_DIR, "train.tsv")), "train")
 
     def get_text_from_train_examples(train_examples):
@@ -269,7 +296,8 @@ def main():
 
     def get_data():
 
-        train_examples = get_train_examples(args.data_dir)
+        #train_examples = get_train_examples(args.data_dir)
+        train_examples = get_train_examples_clean(args.data_dir)
         text, labels = get_text_and_labels_train_examples(train_examples)
 
         logger.info("Loading word embeddings ...in Gensim format ")
@@ -758,12 +786,13 @@ def main():
         #assert len(all_tokens) ==
 
         data_for_attacks = TensorDataset(all_tokens, all_label_id)
-        sampler_for_attacks = RandomSampler(data_for_attacks)  # for NO GPU
+        #sampler_for_attacks = RandomSampler(data_for_attacks)  # for NO GPU
+        sampler_for_attacks = SequentialSampler(data_for_attacks)
         # train_sampler = DistributedSampler(train_data)
 
         #dataloader_for_attack = DataLoader(data_for_attacks, sampler=sampler_for_attacks)
         # TOD : Removed Sampler, need to verify : Need to remove it for random_attacks also
-        dataloader_for_attack = DataLoader(data_for_attacks)
+        dataloader_for_attack = DataLoader(data_for_attacks, sampler=sampler_for_attacks)
 
         all_batch_flaw_tokens = []
         all_batch_flaw_labels = []
@@ -846,6 +875,7 @@ def main():
         # # packed_input = pack_padded_sequence(tx, [SEQ_LEN], batch_first=True)
         # # print("X_t = torch.tensor(batch_tx, dtype=torch.float) shape: ",X_t.shape)
         for line in all_batch_flaw_tokens:
+            print("line : ", line)
             print("line: length : SBPLSHP : before:  ", len(line))
             SEQ_LEN = len(line.split())
             line = line.lower()
@@ -929,6 +959,7 @@ def main():
                 start = batch_size * i
                 end = min(batch_size * (i + 1), num_samples)
                 bs = end - start
+                print("start {} and end {} ".format(start, end))
                 print("num_samples : ", num_samples)
                 print("In epoch {} iteration {} & batch size {} ".format(e, i, bs))
                 # Fixed labels
@@ -1050,7 +1081,7 @@ def main():
         torch.save(G, 'generator.model')
 
     if sample_task == 'developing':
-        train(5, batch_size=256)
+        train(10, batch_size=256)
 
 if __name__ == '__main__':
     main()

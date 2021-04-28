@@ -14,6 +14,7 @@ import io
 import torch
 import hnswlib
 from enumerate_attacks import *
+from GAN2vec.src.data_cleaning import pipeline
 
 # copy-test
 
@@ -54,6 +55,17 @@ def write_vocab_info(fname, vocab_size, vocab_list):
         g.write(str(vocab_size) + '\n')
         for vocab in vocab_list:
             g.write(vocab + '\n')
+
+def clean_text(line):
+    import re
+    import string
+    # line_space_rm = re.sub("s+"," ", line)
+    line_new = line.translate(str.maketrans(' ', ' ', string.punctuation))
+    newtext = re.sub(r'[^A-Za-z]+', ' ', line_new)
+    nstr = re.sub(r'[?|$|.|!:]', r'', newtext)
+    line_space_rm_punt = re.sub("\'\w+", '', nstr)
+    text_clean = "".join([i for i in line_space_rm_punt if i not in string.punctuation])
+    return text_clean.strip()
 
 
 def load_vocab_info(fname):
@@ -231,6 +243,7 @@ def convert_examples_to_features_gan2vec(examples, label_list, max_seq_length, t
     features = []
     for (ex_index, example) in enumerate(examples):
         token_ids = []
+        print("example.text_a : ", example.text_a)
         tokens = word_tokenize(example.text_a)
         print("Printing tokens truth: ", tokens)
         #print("length of tokens: ", len(tokens))
@@ -459,8 +472,11 @@ def convert_examples_to_features_gnrt_eval(examples, label_list, max_seq_length,
 
     features = []
     label_map = {label: i for i, label in enumerate(label_list)}
+    actual_flaw_tokens = []
     for (ex_index, example) in enumerate(examples):
 
+        print("example.text_a: ", example.text_a)
+        actual_flaw_tokens.append(example.text_a)
         tokens = word_tokenize(example.text_a)
         if len(tokens) > max_seq_length:
             tokens = tokens[:max_seq_length]
@@ -508,7 +524,7 @@ def convert_examples_to_features_gnrt_eval(examples, label_list, max_seq_length,
                                     flaw_labels=flaw_labels,
                                     label_id=label_id))
 
-    return features, w2i, i2w, index
+    return features, w2i, i2w, index, actual_flaw_tokens
 
 
 def convert_examples_to_features_adv(examples, max_seq_length, tokenizer, i2w, embeddings=None, emb_index=None,
@@ -780,6 +796,12 @@ def convert_examples_to_features_flaw_attacks_disp(examples, max_seq_length, max
     return features, all_flaw_tokens, all_token_idx, all_truth_tokens
 
 
+def isBlank(myString):
+    if myString and myString.strip():
+        # myString is not None AND myString is not empty or blank
+        return False
+    # myString is None OR myString is empty or blank
+    return True
 
 
 def convert_examples_to_features_flaw_attacks_gr(examples, max_seq_length, max_ngram_length, i2w,tokenizer=None, embeddings=None,
@@ -814,10 +836,12 @@ def convert_examples_to_features_flaw_attacks_gr(examples, max_seq_length, max_n
             #if tok_id == 0: break # Uncomment to remove the below to-do
 
             #if tok_id == 0 or tok_id == 1 or tok_id == 359 : tok_id = np.random.choice([2,47,3,4]) # TODO : change -1
-            if tok_id == 0 or tok_id == 1 or tok_id == 359 : tok_id = 2  # TODO : change -1
+            #if tok_id == 0 or tok_id == 1 or tok_id == 359 or tok_id == 10 or tok_id == 72 or tok_id == 70 or tok_id == 113 or tok_id == 3 : tok_id = 2  # TODO : change -1
             #if tok_id == 1 : tok_id = np.random.choice([2]) # TODO : change -2
 
             tok = i2w[tok_id]
+
+
 
             #print("tok_id : ", tok_id)
             #print("idx is {} : tok_id is {} and tok is {}".format(idx, tok_id,tok))
@@ -825,7 +849,14 @@ def convert_examples_to_features_flaw_attacks_gr(examples, max_seq_length, max_n
             truth_tokens_seq.append(tok)
 
             label, tok_flaw = random_attack(tok, embeddings, emb_index, words)  # embeddings
-            word_pieces = tokenizer.tokenize(tok_flaw)
+
+            # TODO : Validation Check for tok_flaw not being empty; Change it to a random word from the dict
+            if isBlank(tok_flaw):
+                tok_flaw = 'the'
+                label = 1
+                print("SBPLSHP")
+
+            word_pieces = tokenizer.tokenize(clean_text(tok_flaw))
             #word_pieces = word_tokenize(tok_flaw)
 
             print("idx is {} : tok_id = {} : tok = {} : tok_flaw = {} : label = {} ".format(idx, tok_id, tok, tok_flaw,
@@ -835,7 +866,7 @@ def convert_examples_to_features_flaw_attacks_gr(examples, max_seq_length, max_n
             flaw_pieces += word_pieces
 
             #print("label: ", label)
-            flaw_tokens_seq.append(tok_flaw)
+            flaw_tokens_seq.append(clean_text(tok_flaw))
             if label == 1:
                 token_ids_seq.append(int(idx))
                 flaw_label_word = 1
@@ -1004,12 +1035,17 @@ class SST2Processor(DataProcessor):
             return self._create_examples(
                 self._read_tsv(os.path.join(data_dir, "train.tsv")), "train")
 
+    # TODO : This function will impact adversarial_attacks_for_dis in Gan2vec_utils.py
     def get_train_examples_for_attacks(self, data_dir, start, end):
         """See base class."""
         if 'tsv' in data_dir:
-            return self._create_examples_batch_adversarial_attacks(start, end, self._read_tsv(data_dir), "train")
+            #return self._create_examples_batch_adversarial_attacks(start, end, self._read_tsv(data_dir), "train")
+            return self._create_examples_batch_adversarial_attacks_clean_text(start, end, self._read_tsv(data_dir), "train")
         else:
-            return self._create_examples_batch_adversarial_attacks(start, end, self._read_tsv(os.path.join(data_dir, "train.tsv")), "train")
+            #return self._create_examples_batch_adversarial_attacks(start, end, self._read_tsv(os.path.join(data_dir, "train.tsv")), "train")
+            return self._create_examples_batch_adversarial_attacks_clean_text(start, end,
+                                                                   self._read_tsv(os.path.join(data_dir, "train.tsv")),
+                                                                   "train")
 
     def get_dev_examples(self, data_dir):
         """See base class."""
@@ -1095,6 +1131,53 @@ class SST2Processor(DataProcessor):
             if len(lines[line_idx]) > 2: flaw_labels = lines[line_idx][2]
             examples.append(
                 InputExample(guid=guid, text_a=text_a, text_b=None, label=label, flaw_labels=flaw_labels))
+        return examples
+
+    def clean_text_old(self, line):
+        import re
+        import string
+        #line_space_rm = re.sub("s+"," ", line)
+        line_new = line.translate(str.maketrans(' ', ' ', string.punctuation))
+        newtext = re.sub(r'[^A-Za-z]+', ' ', line_new)
+        nstr = re.sub(r'[?|$|.|!:]', r'', newtext)
+        line_space_rm_punt = re.sub("\'\w+", '', nstr)
+        text_clean = "".join([i for i in line_space_rm_punt if i not in string.punctuation])
+        return text_clean.strip()
+
+    def clean_text(self, line):
+        import re
+        import string
+        #line_space_rm = re.sub("s+"," ", line)
+        line_new = line.translate(str.maketrans(' ', ' ', string.punctuation))
+        newtext = re.sub(r'[^A-Za-z]+', ' ', line_new)
+        nstr = re.sub(r'[?|$|.|!:]', r'', newtext)
+        line_space_rm_punt = re.sub("\'\w+", '', nstr)
+        text_clean = "".join([i for i in line_space_rm_punt if i not in string.punctuation])
+        return text_clean.strip()
+
+
+    def _create_examples_batch_adversarial_attacks_clean_text(self, start, end , lines, set_type):
+        """Creates examples for the training and dev sets."""
+        examples = []
+        #i = int(start)
+        line_idx = int(start)
+        while line_idx < end:
+        #for (i, line) in enumerate(lines):
+            print("line_idx : ", line_idx)
+            flaw_labels = None
+            #if i == 0:
+            #    continue
+            guid = "%s-%s" % (set_type, line_idx)
+            text_raw = lines[line_idx][0]
+            #text_a = pipeline(text_a)
+            print("text before clean : ", text_raw)
+            text_a = self.clean_text(text_raw)
+            print("text after  clean : ", text_a)
+            label = lines[line_idx][1]
+            if len(lines[line_idx]) > 2: flaw_labels = lines[line_idx][2]
+            examples.append(
+                InputExample(guid=guid, text_a=text_a, text_b=None, label=label, flaw_labels=flaw_labels))
+            line_idx = line_idx+1
         return examples
 
 

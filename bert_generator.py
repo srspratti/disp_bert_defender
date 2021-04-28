@@ -370,7 +370,10 @@ def main():
 
         #eval_examples = processor.get_gnrt_dev_examples(args.data_file)
         eval_examples = processor.get_gnrt_dev_examples(args.data_dir)
-        eval_features, w2i, i2w, vocab_size = convert_examples_to_features_gnrt_eval(
+        # eval_features, w2i, i2w, vocab_size = convert_examples_to_features_gnrt_eval(
+        #     eval_examples, label_list, args.max_seq_length, args.max_ngram_length, tokenizer, w2i, i2w, vocab_size)
+
+        eval_features, w2i, i2w, vocab_size, actual_flaw_tokens = convert_examples_to_features_gnrt_eval(
             eval_examples, label_list, args.max_seq_length, args.max_ngram_length, tokenizer, w2i, i2w, vocab_size)
 
         logger.info("***** Running evaluation *****")
@@ -404,7 +407,8 @@ def main():
             output_file = os.path.join(data_path, "epoch"+str(epoch)+"gnrt_outputs_"+attack_type+".tsv")
             with open(output_file,"w") as csv_file:
                 writer = csv.writer(csv_file, delimiter='\t')
-                writer.writerow(["sentence", "label"])
+                #writer.writerow(["sentence", "label"])
+                writer.writerow(["sentence", "label", "actual_flaw_tokens"])
 
             #output_model_file = os.path.join(args.output_dir, "epoch"+str(epoch)+WEIGHTS_NAME)
             output_model_file = os.path.join(args.output_dir, "gnrt_trained_" + WEIGHTS_NAME)
@@ -443,14 +447,21 @@ def main():
                         token_new = ' '.join(token_new)
                         label = str(label_id[i])
                         writer = csv.writer(csv_file, delimiter='\t')
-                        writer.writerow([token_new, label])
+                        #writer.writerow([token_new, label])
+                        writer.writerow([token_new, label, actual_flaw_tokens[i]])
 
         current_path = os.path.join(data_path, "epoch" + str(epoch) + "gnrt_outputs_" + attack_type + ".tsv")
-        new_path = os.path.join(data_path, "gnrt_eval_outputs_" + attack_type + ".tsv")
+        new_path = os.path.join(data_path, "gnrt_eval_outputs_debug" + attack_type + ".tsv")
         #current_path = os.path.join(args.data_dir, "epoch" + str(epoch) + "disc_eval_outputs_" + attack_type + ".tsv")
         os.rename(current_path, new_path)
         new_dir_for_classifier = './data/sst-2/add_1/enum_attacks_disp/'
-        shutil.move(new_path, new_dir_for_classifier)
+        new_file = new_dir_for_classifier + "gnrt_eval_outputs_debug" + attack_type + ".tsv"
+        try :
+            shutil.move(new_path, new_dir_for_classifier)
+        except:
+            os.remove(new_file)
+            shutil.move(new_path, new_dir_for_classifier)
+
 
 
 

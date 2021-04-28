@@ -12,7 +12,8 @@ def pipeline(s):
 	s = ' '.join(s)
 	s = s.replace('--', ' ')
 	s = s.translate(str.maketrans('', '', string.punctuation))
-	return s.split(' ')
+	#return s.split(' ')
+	return s
 
 def load_haiku(embed_dim=64):
 	with open(os.path.join(DATA_DIR, 'clean_haiku.data'), 'rb') as f:

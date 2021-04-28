@@ -24,7 +24,7 @@ def create_vec_model_save():
     text, text_orig, encoder, labels = get_data_encoder(data_dir_path, label_list)
 
     create_vocab(data_dir_path, text_orig)
-    print("w2i={}, i2w={}, CHAR_VOCAB={}".format(w2i, i2w, CHAR_VOCAB))
+    #print("w2i={}, i2w={}, CHAR_VOCAB={}".format(w2i, i2w, CHAR_VOCAB))
 
     return text, text_orig, encoder, labels, processor, label_list
 
@@ -69,6 +69,19 @@ def discriminator_test(num_batches):
         print("Batch done.....")
 
         # TODO : Need to add Eval metric - Precision , Recall and F1
+
+        flaw_logits = torch.argmax(sentence_word_labels, dim=1)
+
+        print("Type of flaw_logits: ", type(flaw_logits))
+        print("shape of flaw_logits: ", flaw_logits.size())
+        print("Length of flaw_logits: ", len(flaw_logits))
+        print("flaw_logits: ", flaw_logits)
+
+        #assert flaw_logits.shape == sentence_flaw_labels_truth.shape
+        dis_eval_Accuracy = accuracy_2d(flaw_logits, sentence_flaw_labels_truth)
+
+        print("dis_eval_Accuracy : ", dis_eval_Accuracy)
+
         # TODO : Need to output the format for embedding estimator to recover the tokens
 
 
