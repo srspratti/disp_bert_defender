@@ -74,8 +74,14 @@ def load_encoder():
     return gensim.models.Word2Vec.load(model_path)
 
 
-def discriminator_test(num_batches):
+def discriminator_test(num_batches, max_seq_length):
     num = 0
+    max_seq_len = max_seq_length
+    all_eval_accuracy = 0
+    all_eval_f1score = 0
+    all_eval_recall = 0
+    all_eval_precision = 0
+    all_flaw_logits = []
     for num in range(num_batches):
 
         # Loading trained Discriminator
@@ -84,12 +90,14 @@ def discriminator_test(num_batches):
         print("Dis_saved: ", Dis_saved)
 
         # Loading Text and Encoder
-        text, text_orig, _, _, processor,label_list, flaw_ids = create_vec_model_from_data_save()
+        text, text_orig, _, _, processor,label_list, all_flaw_ids = create_vec_model_from_data_save()
         #text, _, _, _, processor, label_list = get_data_and_labels()
         #encoder = load_encoder()
         encoder = get_encoder_from_train()
 
-        rnd = randint(1, 100)
+        #rnd = randint(1, 100)
+        rnd = 1
+        #rnd = 59
         print("rnd: ", rnd)
         # print("text : ", text)
         # print("text_orig: ", text_orig)
@@ -109,8 +117,9 @@ def discriminator_test(num_batches):
         #sentence_flaw_labels_truth
         #print("sentence_flaw_labels_truth value: ", sentence_flaw_labels_truth[0, :, :])
         #print("sentence_flaw_labels_truth Shape: ", sentence_flaw_labels_truth.shape)
-        print("flaw_labels length : ", len(flaw_ids))
-        print("flaw_labels length of 1st element : ", flaw_ids[0])
+        print("flaw_labels length : ", len(all_flaw_ids))
+        print("flaw_labels length of 1st element : ", all_flaw_ids[0])
+        print("all flaw_ ids : ", all_flaw_ids)
         print("Batch done.....")
 
         flaw_logits_t = torch.argmax(sentence_word_labels, dim=1)
@@ -122,6 +131,7 @@ def discriminator_test(num_batches):
 
         # Convert flaw_logits into list
         flaw_logits = flaw_logits_t.tolist()
+        all_flaw_logits.append(flaw_logits)
 
         print("flaw_logits type : ", type(flaw_logits))
         print("flaw_logits len : ", len(flaw_logits))
@@ -129,55 +139,67 @@ def discriminator_test(num_batches):
 
 
         # TODO : Need to add Eval metric - Precision , Recall and F1
+        # Converting flaw_ids of batch from all_flaw_ids
+        srt = (rnd-1)
+        ed = ( rnd+7)
+        print("srt: ", srt)
+        print("ed: ", ed)
 
+        flaw_ids = all_flaw_ids[srt:ed]
+        print("len of flaw_ids : ", len(flaw_ids))
         # Calculating the flaw_labels from flaw_ids
+        all_flaw_labels = []
+        for idx in range((rnd+8)-(rnd)):
+            print("sample_idx: ", idx)
+            # idx = (sample_idx-1)
+            index = []
+            flaw_labels = [0]*max_seq_len
+            print("flaw_ids[idx] : ", flaw_ids[idx])
+            print("isBlank(flaw_ids[idx]) : ", isBlank(flaw_ids[idx]))
+            if isBlank(flaw_ids[idx]):
+                print("Here in isBlank block: ")
+                flaw_labels = [0]*max_seq_len
+                all_flaw_labels.append(flaw_labels)
+            else:
+                clean_flaw_id = flaw_ids[idx].strip('"').split(',')
+                print("clean_flaw_id : ", clean_flaw_id)
+                #for val_idx, flaw_ids_val in enumerate(flaw_ids[idx]):
+                for val_idx, flaw_ids_val in enumerate(clean_flaw_id):
+                    # if flaw_ids_val > max_seq_len:
+                    #    index.append(val_idx)
+                    print("flaw_ids_val : ", flaw_ids_val)
+                    if int(flaw_ids_val) <= max_seq_len : flaw_labels[(int(flaw_ids_val) - 1)] = 1
+                all_flaw_labels.append(flaw_labels)
+            print("flaw_labels : ", flaw_labels)
+            print("flaw_logits : ", flaw_logits[idx])
+            #sample_eval_accuracy = accuracy_2d(flaw_logits[idx], flaw_labels)
 
-        true_logits = []
-        predictions, truths = [], []
+        print("all_flaw_logits len: ", len(all_flaw_logits))
+        print("all_flaw_labels len: ", len(all_flaw_labels))
+        batch_accuracy = accuracy_2d(flaw_logits, all_flaw_labels)
+        all_eval_accuracy = all_eval_accuracy + batch_accuracy
+        all_flaw_labels_t = torch.tensor(all_flaw_labels, dtype=torch.long)
+        all_flaw_logits_t = torch.tensor(all_flaw_logits, dtype=torch.long)
+        all_flaw_logits_t_s = torch.squeeze(all_flaw_logits_t, 0)
+        print("all_flaw_labels_t shape : ", all_flaw_labels_t.shape)
+        print("all_flaw_logits_t shape : ", all_flaw_logits_t_s.shape)
+        """
+        batch_f1score, batch_recall, batch_precision = f1_3d(all_flaw_logits_t_s, all_flaw_labels_t)
+        all_eval_f1score = all_eval_f1score + batch_f1score
+        all_eval_recall = all_eval_recall + batch_recall
+        all_eval_precision = all_eval_precision + batch_precision
+        """
 
-        # print("length of flaw_ids: ",len(flaw_ids))
-
-        for i in range(len(flaw_ids)):
-            tmp = [0] * len(flaw_logits[i])
-
-            # print("tmp: ",tmp) # ne line
-            # print("printing i:",i)
-            # print("len of tmp: ",len(tmp))
-            # print("length of flaw_ids of i : ",len(flaw_ids[i]))
-            # print("flaw_ids[i]: ",flaw_ids[i])
-
-            for j in range(len(flaw_ids[0])):
-                # print("flaw_ids[i][j] : ",flaw_ids[i][j])
-                # print("tmp value: ", tmp)
-                # print("tmp len: ", len(tmp))
-                if flaw_ids[i][j] == 0: break
-                if flaw_ids[i][j] >= len(tmp): continue
-                tmp[flaw_ids[i][j]] = 1
-
-            true_logits.append(tmp)
-            # print('true_logits: ', true_logits)
-
-        tmp_eval_accuracy = accuracy_2d(flaw_logits, true_logits)
-        eval_accuracy += tmp_eval_accuracy
-
-        predictions += true_logits  # Original
-        truths += flaw_logits  # Original
-
-
-
-
-        #assert flaw_logits.shape == sentence_flaw_labels_truth.shape
-        #dis_eval_Accuracy = accuracy_2d(flaw_logits, sentence_flaw_labels_truth)
-
-        #print("dis_eval_Accuracy : ", dis_eval_Accuracy)
+    print("accuracy is : ", all_eval_accuracy/num_batches)
+    # print("Precision is : ", all_eval_precision / num_batches)
+    # print("Recall is : ", all_eval_recall / num_batches)
+    # print("F1score is : ", all_eval_f1score / num_batches)
 
         # TODO : Need to output the format for embedding estimator to recover the tokens
 
-
-
 def main():
     #discriminator_test(data_dir_path)
-    discriminator_test(1)
+    discriminator_test(1,6)
 
 if __name__ == '__main__':
     main()

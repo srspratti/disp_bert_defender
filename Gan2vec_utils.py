@@ -348,7 +348,9 @@ def get_packed_sentences(text, start , end, encoder): # parameters : text
 
         X = get_target_representation(line, encoder)
         # tx = Variable(torch.from_numpy(np.array([X]))).type(Xtype)
-
+        print("X: ", len(X[0]))
+        # if len(X) < max_seq_length:
+        #     X = [0]*(max_seq_length-len(X))
         # batch_tx.append(tx)
         batch_tx.append(X)
         print("X Length ", len(X))
