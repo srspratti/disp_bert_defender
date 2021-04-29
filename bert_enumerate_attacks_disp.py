@@ -315,7 +315,8 @@ def main():
     # w2i, i2w, vocab_size = {}, {}, 1
     # if not os.path.exists('my_folder'):
     #     os.makedirs('my_folder')
-    dir_path=os.getcwd() + "/data/sst-2/add_1/enum_attacks_disp"
+    # dir_path=os.getcwd() + "/data/sst-2/add_1/enum_attacks_disp"
+    dir_path=os.getcwd() + "/data/sst-2/"
     if not os.path.exists(dir_path):
         os.makedirs(dir_path)
     #file_name = dir_path + '/{}_{}_enum/'.format(attack_type)
@@ -336,8 +337,10 @@ def main():
         
             batch = tuple(t.to(device) for t in batch)
             
-            tokens,_ = batch #, label_id, ngram_ids, ngram_labels, ngram_masks
-            tokens = tokens.to('cpu').numpy() 
+            tokens, token_label_ids = batch #, label_id
+            
+            tokens = tokens.to('cpu').numpy()
+            token_label_ids = token_label_ids.to('cpu').numpy()
             
             
             features_with_flaws, all_flaw_tokens, all_token_idx, all_truth_tokens = convert_examples_to_features_flaw_attacks_disp(tokens,
@@ -361,7 +364,8 @@ def main():
             all_truth_tokens_flat = all_truth_tokens_flat.strip("''").strip("``")
             print("all_truth_tokens_flat: ", all_truth_tokens_flat)
             #writer.writerow(["sentence-with-flaw_tokens", "label", "flaw_ids", "ground-truth-sentence","ground-truth-token_ids","Index_Ids", "flaw_labels"])
-            writer.writerow([all_flaw_tokens, all_label_id[step],  all_token_idx,all_truth_tokens_flat,all_tokens[step], flaw_ids_lst, flaw_labels_lst])
+            # writer.writerow([all_flaw_tokens, all_label_id[step],  all_token_idx,all_truth_tokens_flat,all_tokens[step], flaw_ids_lst, flaw_labels_lst])
+            writer.writerow([all_flaw_tokens, token_label_ids[0],  all_token_idx])
 if __name__ == "__main__":
     main()
 
