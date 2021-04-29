@@ -192,13 +192,6 @@ def main():
     IN_TEXT = 'cleaned_haiku.data'
     IN_W2V = 'w2v_haiku.model'
 
-    #CHAR_VOCAB = []
-    #CHAR_VOCAB_BG = []
-    #w2i = defaultdict(lambda: 0.0)
-    #w2i_bg = defaultdict(lambda: 0.0)
-    #i2w = defaultdict(lambda: "UNK")
-    #i2w_bg = defaultdict(lambda: "UNK")
-
     # to-do: think of an open vocabulary system
     WORD_LIMIT = 9999  # remaining 1 for <PAD> (this is inclusive of UNK)
     #task_name = ""
@@ -232,9 +225,6 @@ def main():
         """Creates examples for the training and dev sets."""
         examples = []
         for (i, line) in enumerate(lines):
-            #print("line :", line)
-            #print("line[0]: ", line[0])
-            #print("line[1]", line[1])
             flaw_labels = None
             if i == 0:
                 continue
@@ -316,36 +306,15 @@ def main():
         seq_lens = []
         sentences = []
         longest = 0
-        #print("printing end: ", end)
-        #print("printing start: ", start)
         text_batch = []
         for i in range((end-start)):
             text_batch.append(text[i])
-        #print("Printing Text Batch: ", text_batch)
-        #print("Printing Text Batch: len ", len(text_batch))
         for l in text_batch :
-            #print("l in : ",l)
             seq_lens.append(len(l))
             longest = len(l) if len(l) > longest else longest
-            #longest = args.max_seq_length
-            # TODO : Might need to look into the max_seq_length
-            #longest = 6
-
             sentence = []
-            #print("encoder : ", encoder)
-            #for txt in l.split():
             for txt in l:
-                #print(" txt : ", txt)
-                #print("encoder.wv[txt]) :", encoder.wv[txt])
-                #print("encoder.wv[txt]) type :", type(encoder.wv[txt]))
-                #print("encoder.wv[txt]) shape :", encoder.wv[txt].shape)
                 sentence.append(torch.tensor(encoder.wv[txt]))
-                #print(" sentence len : ", len(sentence))
-                #print(" sentence type : ", type(sentence))
-
-            #print("sentence type of : ", type(sentence))
-            #print("sentences len : ", len(sentences))
-            #print("sentences type : ", type(sentence))
             sentences.append(torch.stack(sentence).unsqueeze(0))
 
         # Pad input
@@ -364,29 +333,13 @@ def main():
         # Need to squish sentences into [0,1] domain
         seq = torch.cat(sentences, dim=0)
         # seq = torch.sigmoid(seq)
-        print("seq: type ", type(seq))
-        #print("seq: len ", len(seq))
-        #print("seq:  ", seq)
-        print("seq:  shape ", seq.shape)
-        print("Seq_lens: ", seq_lens)
         start_words = seq[:, 0:1, :]
-        #start_words = seq[:, :, :]
-        
-        #for idx in range(len(seq_lens)):
-        #  start_words = seq[:,0:(seq_lens[idx]-1), :]
         packer = pack_padded_sequence(
             seq,
             seq_lens,
             batch_first=True,
             enforce_sorted=False
         )
-
-        # print("packer type of : ", type(packer))
-        # print("start words type of : ", type(start_words))
-        #print("packer type of : ", type(packer))
-        #print("packer type of : shape ", packer.shape)
-        #print("start words type of : ", type(start_words))
-        #print("start words type of : shape ", start_words.shape)
         return packer, start_words
 
     """ word representation from bag of chars
@@ -422,59 +375,6 @@ def main():
 
         return rep, word
 
-    """
-    def get_line_representation(line):
-        rep = []
-        #modified_words = []
-        print("line length inside get_line_representation : ", len(line))
-        print("line : ", line)
-        for word in line.split():
-            print("word in line.split()", word)
-            word_rep, _ = get_swap_word_representation(word)
-            print("word_rep in line.split() len ", len(word_rep))
-            new_word = word
-            rep.append(word_rep)
-            #modified_words.append(new_word)
-        print("rep length expected : exp: len(line) == len(rep) ", len(rep))
-        return rep
-    
-    def create_vocab(data_dir,text, background_train=False, cv_path=""):
-
-        #train_examples = get_train_examples(data_dir)
-        global w2i, i2w, CHAR_VOCAB
-        #lines = get_lines(data_dir)
-        #print("Text : ", text)
-        for line in text:
-            #print("Line: ", line)
-            for word in line.split():
-
-                # add all its char in vocab
-                for char in word:
-                    if char not in CHAR_VOCAB:
-                        CHAR_VOCAB.append(char)
-
-                w2i[word] += 1.0
-
-        if background_train:
-            CHAR_VOCAB = pickle.load(open(cv_path, 'rb'))
-        word_list = sorted(w2i.items(), key=lambda x: x[1], reverse=True)
-        word_list = word_list[:WORD_LIMIT]  # only need top few words
-
-        # remaining words are UNKs ... sorry!
-        w2i = defaultdict(lambda: WORD_LIMIT)  # default id is UNK ID
-        w2i['<PAD>'] = INPUT_PAD_IDX  # INPUT_PAD_IDX is 0
-        i2w[INPUT_PAD_IDX] = '<PAD>'
-        for idx in range(WORD_LIMIT - 1):
-            w2i[word_list[idx][0]] = idx + 1
-            i2w[idx + 1] = word_list[idx][0]
-
-        pickle.dump(dict(w2i), open("./GAN2vec_RobGAN_data_oup/vocab/" + task_name + "w2i_" + str(WORD_LIMIT) + ".p", 'wb'))
-        pickle.dump(dict(i2w),
-                    open("./GAN2vec_RobGAN_data_oup/vocab/" + task_name + "i2w_" + str(WORD_LIMIT) + ".p", 'wb'))  # don't think its needed
-        pickle.dump(CHAR_VOCAB, open("./GAN2vec_RobGAN_data_oup/vocab/" + task_name + "CHAR_VOCAB_ " + str(WORD_LIMIT) + ".p", 'wb'))
-        return
-    """
-
     def get_closest(sentences):
         scores = []
         wv = encoder.wv
@@ -492,306 +392,18 @@ def main():
     device = torch.device("cpu")
 
     sample_task = args.sample.lower()
-    print("sample_task :", sample_task)
-
-    def train_old_old(epochs, batch_size=3, latent_size=256, K=1):
-        #text, encoder = get_data()
-        num_samples = len(text)
-
-
-        G = Generator(64, 64)
-        D = Discriminator(64)
-
-        l2 = nn.MSELoss()
-        loss = nn.BCELoss()
-        loss_ce = nn.CrossEntropyLoss()
-        opt_d = Adam(D.parameters(), lr=0.002, betas=(0.5, 0.999))
-        opt_g = Adam(G.parameters(), lr=0.002, betas=(0.5, 0.999))
-
-        for e in range(int(args.num_train_epochs)):
-            i = 0
-            while batch_size * i < num_samples:
-                stime = time.time()
-
-                start = batch_size * i
-                end = min(batch_size * (i + 1), num_samples)
-                bs = end - start
-
-                # Use lable smoothing
-                tl = torch.full((bs, 1), 0.9)
-                fl = torch.full((bs, 1), 0.1)
-
-                real, greal = get_lines(start, end)
-
-                print("real: ", real)
-                #print("greal: ", greal)
-
-                # Train Generator as per RobGAN
-                # Train generator
-                for _ in range(K):
-                    opt_g.zero_grad()
-
-                    # GAN fooling ability
-                    fake = G(greal)
-                    g_loss = loss(D(fake), tl)
-                    g_loss.backward()
-                    opt_g.step()
-
-                g_loss = g_loss.item()
-
-                # Train descriminator
-                opt_d.zero_grad()
-                fake = G(greal)
-
-                r_loss = loss(D(real), tl)
-                f_loss = loss(D(fake), fl)
-
-                # Adversarial attack
-                # gadv = get_adv_lines(start, end) #
-
-                # a_loss = loss_ce(D(gadv),t1)  #
-
-                # r_loss.backward()
-                # f_loss.backward()
-                # d_loss = (r_loss.mean().item() + f_loss.mean().item()) / 2
-
-                #
-                # d_total_loss = r_loss + f_loss + a_loss
-                # d_total_loss.backward()
-
-                opt_d.step()
-
-                i += 1
-
-            if e % 10 == 0:
-                torch.save(G, 'generator.model')
-        torch.save(G, 'generator.model')
-
-    def train_old(epochs, batch_size=256, latent_size=256, K=1):
-        text, encoder = get_data()
-        num_samples = len(text)
-
-        #get_data()
-        # print("text type : ", type(text))
-        # print("text: ", text)
-        # print("text len : ", len(text))
-        #num_samples = len(text)
-        # print("num_samples: ", num_samples)
-
-        G = Generator(64, 64)
-        D = Discriminator(64)
-
-        l2 = nn.MSELoss()
-        loss = nn.BCELoss()
-        opt_d = Adam(D.parameters(), lr=0.002, betas=(0.5, 0.999))
-        opt_g = Adam(G.parameters(), lr=0.002, betas=(0.5, 0.999))
-        
-        #print("batch: ", batch_size)
-        #print("num of samples: ", num_samples)
-        #print("num of epochs: ", epochs)
-        for e in range(epochs):
-            i = 0
-            while batch_size * i < num_samples:
-                stime = time.time()
-
-                start = batch_size * i
-                end = min(batch_size * (i + 1), num_samples)
-                bs = end - start
-
-                # print("start: ", start)
-                # print("end: ", end)
-                # print("bs: ", bs)
-
-                # Use lable smoothing
-                tl = torch.full((bs, 1), 0.9)
-                fl = torch.full((bs, 1), 0.1)
-
-                # Train descriminator
-                opt_d.zero_grad()
-                #real, greal = get_lines(start, end)
-                #real, greal = get_lines(0, 2)
-                real, greal = get_lines(start, end, text, encoder)
-                # print("real: ", real)
-                # print("real: type:  ", type(real))
-                # print("real: shape:  ", len(real))
-                # print("greal: ", greal)
-                # print("greal: shape : ", greal.shape)
-                # print("greal: type : ", type(greal))
-                
-                fake = G(greal)
-                # print("fake: ", fake)
-                # print("fake: shape : ", fake.shape)
-                # print("fake: type : ", type(fake))
-
-                # print("D(real): ", D(real))
-                # print("t1 : ", tl)
-                # print("t1 : shape ", tl.shape)
-                # print("f1 : ", fl)
-                # print("f1 : shape ", fl.shape)
-                r_loss = loss(D(real), tl)
-                f_loss = loss(D(fake), fl)
-
-                r_loss.backward()
-                f_loss.backward()
-                d_loss = (r_loss.mean().item() + f_loss.mean().item()) / 2
-                opt_d.step()
-
-                # Train generator
-                for _ in range(K):
-                    opt_g.zero_grad()
-
-                    # GAN fooling ability
-                    fake = G(greal)
-                    g_loss = loss(D(fake), tl)
-                    g_loss.backward()
-                    opt_g.step()
-
-                g_loss = g_loss.item()
-
-                print(
-                    '[%d] D Loss: %0.3f  G Loss %0.3f  (%0.1fs)' %
-                    (e, d_loss, g_loss, time.time() - stime)
-                )
-
-                i += 1
-            
-            if e % 10 == 0:
-                torch.save(G, 'generator.model')
-        torch.save(D, 'Discriminator.model')
-        torch.save(G, 'generator.model')
-
-    def train_before_robgan(epochs, batch_size=256, latent_size=256, K=1):
-        text, encoder = get_data()
-        num_samples = len(text)
-
-        # get_data()
-        # print("text type : ", type(text))
-        # print("text: ", text)
-        # print("text len : ", len(text))
-        # num_samples = len(text)
-        # print("num_samples: ", num_samples)
-
-        G = Generator(128, 128)
-        D = Discriminator(128)
-
-        #G = BiLSTM
-        #D = BertForDiscriminator
-        #D = ScRNN
-
-        l2 = nn.MSELoss()
-        loss = nn.BCELoss()
-        #loss = nn.CrossEntropyLoss()
-        opt_d = Adam(D.parameters(), lr=0.002, betas=(0.5, 0.999))
-        opt_g = Adam(G.parameters(), lr=0.002, betas=(0.5, 0.999))
-
-        # print("batch: ", batch_size)
-        # print("num of samples: ", num_samples)
-        # print("num of epochs: ", epochs)
-        max_seq_len = args.max_seq_length
-        for e in range(epochs):
-            i = 0
-            while batch_size * i < num_samples:
-                stime = time.time()
-
-                start = batch_size * i
-                end = min(batch_size * (i + 1), num_samples)
-                bs = end - start
-
-                # print("start: ", start)
-                # print("end: ", end)
-                # print("bs: ", bs)
-
-                # Use lable smoothing
-                tl = torch.full((bs, 1), 0.9)
-                fl = torch.full((bs, 1), 0.1)
-
-                # Label smoothing for word-level
-                #tl = torch.full((bs, max_seq_len), 0.9)
-                #fl = torch.full((bs, max_seq_len), 0.1)
-
-                # Train descriminator
-                opt_d.zero_grad()
-                # real, greal = get_lines(start, end)
-                # real, greal = get_lines(0, 2)
-                real, greal = get_lines(start, end, text, encoder)
-                print("real: ", real)
-                print("real: type:  ", type(real))
-                print("real: shape:  ", len(real))
-                print("greal: ", greal)
-                print("greal: shape : ", greal.shape)
-                print("greal: type : ", type(greal))
-
-                fake = G(greal)
-                print("fake: ", fake)
-                print("fake: shape : ", fake.shape)
-                print("fake: type : ", type(fake))
-
-                print("D(real): ", D(real))
-                print("t1 : ", tl)
-                print("t1 : shape ", tl.shape)
-                print("f1 : ", fl)
-                print("f1 : shape ", fl.shape)
-                r_loss = loss(D(real), tl)
-                f_loss = loss(D(fake), fl)
-
-                r_loss.backward()
-                f_loss.backward()
-                d_loss = (r_loss.mean().item() + f_loss.mean().item()) / 2
-                opt_d.step()
-
-                # Train generator
-                for _ in range(K):
-                    opt_g.zero_grad()
-
-                    # GAN fooling ability
-                    fake = G(greal)
-                    g_loss = loss(D(fake), tl)
-                    g_loss.backward()
-                    opt_g.step()
-
-                g_loss = g_loss.item()
-
-                print(
-                    '[%d] D Loss: %0.3f  G Loss %0.3f  (%0.1fs)' %
-                    (e, d_loss, g_loss, time.time() - stime)
-                )
-
-                i += 1
-
-            if e % 10 == 0:
-                torch.save(G, 'generator.model')
-        torch.save(D, 'Discriminator.model')
-        torch.save(G, 'generator.model')
 
     def adversarial_attacks(start , end, encoder):
 
-        # ........code here................
-
-        #text_batch + labels
-        #from train.tsv = > text_a and labels
-
-        #text_a and labels
-        #from train.tsv = get_train_examples(_create_examples(read_tsv)))
         train_examples_batch = processor.get_train_examples_for_attacks(args.data_dir, start , end)
-        #train_examples = processor.get_train_examples(args.data_dir)
         features_for_attacks, w2i_disp, i2w_disp, vocab_size = convert_examples_to_features_gan2vec(train_examples_batch, label_list,tokenizer=None,max_seq_length=6)
 
         all_tokens = torch.tensor([f.token_ids for f in features_for_attacks], dtype=torch.long)
         all_label_id = torch.tensor([f.label_id for f in features_for_attacks], dtype=torch.long)
 
-        # print("all_tokens type : ", type(all_tokens))
-        # print("all_label_id type : ", type(all_label_id))
-        # print("all_tokens type : ", all_tokens.shape)
-        # print("all_label_id type : ", all_label_id.shape)
-        #assert len(all_tokens) ==
-
         data_for_attacks = TensorDataset(all_tokens, all_label_id)
-        #sampler_for_attacks = RandomSampler(data_for_attacks)  # for NO GPU
         sampler_for_attacks = SequentialSampler(data_for_attacks)
-        # train_sampler = DistributedSampler(train_data)
 
-        #dataloader_for_attack = DataLoader(data_for_attacks, sampler=sampler_for_attacks)
-        # TOD : Removed Sampler, need to verify : Need to remove it for random_attacks also
         dataloader_for_attack = DataLoader(data_for_attacks, sampler=sampler_for_attacks)
 
         all_batch_flaw_tokens = []
@@ -802,11 +414,7 @@ def main():
             batch = tuple(t.to(device) for t in batch)
             tokens, _ = batch  # , label_id, ngram_ids, ngram_labels, ngram_masks
 
-            # module1: learn a discriminator
             tokens = tokens.to('cpu').numpy()
-
-            #features_with_flaws, all_flaw_tokens, all_token_idx, all_truth_tokens = convert_examples_to_features_flaw_attacks(
-            #    tokens,args.max_seq_length, args.max_ngram_length, tokenizer, i2w,embeddings = None, emb_index = None, words = None)
 
             features_with_flaws, all_flaw_tokens, all_token_idx, all_truth_tokens, all_flaw_labels_truth = convert_examples_to_features_flaw_attacks_gr(
                 tokens, args.max_seq_length, args.max_ngram_length, i2w, tokenizer, embeddings=None, emb_index=None,
@@ -826,92 +434,25 @@ def main():
             flaw_ids_lst = flaw_ids.tolist()
             flaw_labels_ar = flaw_labels.detach().cpu().numpy()
             flaw_labels_lst = flaw_labels.tolist()
-            print("flaw_labels_lst : ", flaw_labels_lst)
-            print("all_flaw_tokens : before ", all_flaw_tokens)
             all_flaw_tokens = all_flaw_tokens.strip("''").strip("``")
             all_truth_tokens_flat = all_truth_tokens_flat.strip("''").strip("``")
-            # print("all_flaw_tokens: ",all_flaw_tokens)
-            print("all_flaw_tokens : ", all_flaw_tokens)
-            print("all_truth_tokens_flat : ", all_truth_tokens_flat)
-            print("all_flaw_labels_truth : ", all_flaw_labels_truth)
-            print("+++++++++++++++++++++++++++++++++++")
             all_batch_flaw_tokens.append(all_flaw_tokens)
             all_batch_flaw_labels.append(flaw_labels_lst)
             all_batch_flaw_labels_truth.append(all_flaw_labels_truth)
 
-        # print("all_flaw_tokens type ", type(all_flaw_tokens))
-        # print("all_flaw_tokens type ", len(all_flaw_tokens))
-        # print("all_batch_flaw_tokens type ", type(all_batch_flaw_tokens))
-        # print("all_batch_flaw_tokens len ", len(all_batch_flaw_tokens))
-        # print("all_batch_flaw_labels type ", type(all_batch_flaw_labels))
-        # print("all_batch_flaw_labels len ", len(all_batch_flaw_labels))
         batch_tx = []
         BATCH_SEQ_LEN = []
         Xtype = torch.FloatTensor
-        # for line in all_batch_flaw_tokens:
-        #     print("line: length : SBPLSHP : before:  ", len(line))
-        #     SEQ_LEN = len(line.split())
-        #     line = line.lower()
-        #     print("line: length : SBPLSHP : after: ", len(line))
-        #     # TODO - mscll. : Create a separate GAN2vec and RobGAN Utils
-        #
-        #     X = get_line_representation(line)
-        #     #tx = Variable(torch.from_numpy(np.array([X]))).type(Xtype)
-        #
-        #     # batch_tx.append(tx)
-        #     batch_tx.append(X)
-        #     print("X Length ", len(X))
-        #
-        #
-        #
-        #     BATCH_SEQ_LEN.append(SEQ_LEN)
-        #     # print("X :", type(X))
-        #     # print("tx :", type(tx))
-        #
-        # # print("batch_tx : ", len(batch_tx))
-        # # print("BATCH_SEQ_LEN : ", BATCH_SEQ_LEN)
-        # print("BATCH_SEQ_LEN : ", BATCH_SEQ_LEN)
-        # X_t = torch.tensor(batch_tx, dtype=torch.float)
-        # # packed_input = pack_padded_sequence(tx, [SEQ_LEN], batch_first=True)
-        # # print("X_t = torch.tensor(batch_tx, dtype=torch.float) shape: ",X_t.shape)
         for line in all_batch_flaw_tokens:
-            print("line : ", line)
-            print("line: length : SBPLSHP : before:  ", len(line))
             SEQ_LEN = len(line.split())
             line = line.lower()
-            print("line: length : SBPLSHP : after: ", len(line))
-            # TODO - mscll. : Create a separate GAN2vec and RobGAN Utils
-
             X = get_target_representation(line, encoder)
-            #tx = Variable(torch.from_numpy(np.array([X]))).type(Xtype)
-
-            # batch_tx.append(tx)
             batch_tx.append(X)
-            print("X Length ", len(X))
-
-
-
             BATCH_SEQ_LEN.append(SEQ_LEN)
-            # print("X :", type(X))
-            # print("tx :", type(tx))
-
-        # print("batch_tx : ", len(batch_tx))
-        # print("BATCH_SEQ_LEN : ", BATCH_SEQ_LEN)
-        print("BATCH_SEQ_LEN : ", BATCH_SEQ_LEN)
         X_t = torch.tensor(batch_tx, dtype=torch.float)
-        print("X_t shape: ", X_t.shape)
-        # packed_input = pack_padded_sequence(tx, [SEQ_LEN], batch_first=True)
-        # print("X_t = torch.tensor(batch_tx, dtype=torch.float) shape: ",X_t.shape)
         real_adv = pack_padded_sequence(X_t, BATCH_SEQ_LEN, batch_first=True)
         all_batch_flaw_labels_truth_t = torch.tensor(all_batch_flaw_labels_truth, dtype=torch.long)
-
-        print("all_batch_flaw_labels_truth len : ", len(all_batch_flaw_labels_truth))
-        print("all_batch_flaw_labels_truth 0 element len : ", len(all_batch_flaw_labels_truth[0]))
-        print("all_batch_flaw_labels_truth 0 element value : ", all_batch_flaw_labels_truth[0])
-        #print("all_batch_flaw_labels_truth 0 element len : ", all_batch_flaw_labels_truth[0])
         all_batch_flaw_labels_truth_t_s = torch.squeeze(all_batch_flaw_labels_truth_t)
-        # flaw_ids_or_flaw_labels
-        #return real_adv, all_flaw_labels_truth
         return X_t, all_batch_flaw_labels_truth_t_s
 
     def get_loss():
@@ -921,34 +462,14 @@ def main():
         text, text_orig, encoder, labels = get_data()
         num_samples = len(text)
         create_vocab(args.data_dir,text_orig)
-        #batch_size = batch_size
-
-
-        # get_data()
-        # print("text type : ", type(text))
-        # print("text: ", text)
-        # print("text len : ", len(text))
-        # num_samples = len(text)
-        # print("num_samples: ", num_samples)
-        #print("CHAR_VOCAB", CHAR_VOCAB)
         G = Generator(128, 128)
-        #D = Discriminator(128)
         D = Discriminator(128, len(CHAR_VOCAB), encoder)
 
-        #G = BiLSTM
-        #D = BertForDiscriminator
-        #D = ScRNN
-
         l2 = nn.MSELoss()
-        #loss = nn.BCELoss()
         loss = get_loss()
-        #loss = nn.CrossEntropyLoss()
         opt_d = Adam(D.parameters(), lr=0.002, betas=(0.5, 0.999))
         opt_g = Adam(G.parameters(), lr=0.002, betas=(0.5, 0.999))
 
-        # print("batch: ", batch_size)
-        # print("num of samples: ", num_samples)
-        # print("num of epochs: ", epochs)
         max_seq_len = args.max_seq_length
         for e in range(epochs):
             i = 0
@@ -959,53 +480,23 @@ def main():
                 start = batch_size * i
                 end = min(batch_size * (i + 1), num_samples)
                 bs = end - start
-                print("start {} and end {} ".format(start, end))
-                print("num_samples : ", num_samples)
-                print("In epoch {} iteration {} & batch size {} ".format(e, i, bs))
                 # Fixed labels
-                # TODO : Just testing on seq_length 6 momentarily. Need to change it to max_seq_length
                 test_seq_length = 6
-                # zeros = Variable(torch.FloatTensor(batch_size).fill_(0).cuda())
-                # ones = Variable(torch.FloatTensor(batch_size).fill_(1).cuda())
-                # zeros = torch.zeros(batch_size, test_seq_length, dtype=torch.long)
-                # ones = torch.ones(batch_size, test_seq_length, dtype=torch.long)
                 zeros = torch.zeros(bs, test_seq_length, dtype=torch.long)
                 ones = torch.ones(bs, test_seq_length, dtype=torch.long)
 
-
-                # Use lable smoothing # TODO : Test if this impacts the loss or not ?
                 tl = torch.full((bs, 1), 0.9)
                 fl = torch.full((bs, 1), 0.1)
 
                 real, greal = get_lines(start, end, text, encoder)
 
-                #print("real: ", real)
-                #print("greal: ", greal)
-                #real_adv, flaw_ids_or_flow_labels = adversarial_attacks()
-
                 # Train Generator as per RobGAN
-                # Train generator
                 for _ in range(K):
                     opt_g.zero_grad()
 
                     # GAN fooling ability
                     fake = G(greal)
-                    print("type of fake : ", type(fake))
-                    print("Shape of fake : ", fake.shape)
-                    print("type of real :", type(real))
-                    #print("Shape of real :", real.shape)
-                    print("type of greal :", type(greal))
-                    print("Shape of greal :", greal.shape)
-                    #TODO - 1[test]: Modify below line
-                    d_fake_bin, d_fake_multi=D(fake) # TODO - 1 : Need to change the Discriminator to return multiple tensors
-                    #g_loss = loss(D(fake), tl)
-                    #g_loss = loss(d_fake_bin, tl, d_fake_multi,zeros, lam=0.5)
-                    # print("d_fake_bin type : ", type(d_fake_bin))
-                    # print("d_fake_bin shape : ", d_fake_bin.shape)
-                    # print("d_fake_multi type : ", type(d_fake_multi))
-                    # print("d_fake_multi shape : ", d_fake_multi.shape)
-                    # print("d_fake_multi value : ", d_fake_multi[0,:,:])
-
+                    d_fake_bin, d_fake_multi=D(fake)
                     g_loss = loss_nll(d_fake_bin, tl, d_fake_multi, zeros, lam=0.5)
                     g_loss.backward()
                     opt_g.step()
@@ -1016,61 +507,13 @@ def main():
                 opt_d.zero_grad()
                 fake = G(greal)
 
-                # or  with torch.no_grad():
-                #                 v_x_fake = gen(vz, y=v_y_fake)
-
-                #r_loss = loss(D(real), tl)
-                #f_loss = loss(D(fake), fl)
-
-                # zeros and ones need to align with the max_seq_length
-                # to-do : Need to understand that while D(real) , should we use the actual labels ( flaw_ids)
-
-                #d_real_bin, d_real_multi = D(real)
-                #d_r_loss = loss(d_real_bin, tl, d_real_multi, zeros, lam=0.5)
-                #TODO - 1[test]: Modify below line
                 d_fake_bin_d, d_fake_multi_d = D(fake)
                 d_f_loss = loss_nll(d_fake_bin_d, fl, d_fake_multi_d, ones, lam=0.5)
+                real_adv, flaw_labels = adversarial_attacks(start, end, encoder)
 
-                # to-do : Or combine both d_real_bin into adversaries
-                #d_real_adv_bin, d_real_adv_multi = D(real)
-                #d_r_adv_loss = loss(d_real_adv_bin, tl, d_real_adv_multi, zeros, lam=0.5)
-
-                # to-do In Case if we want to use a separate loss function for the Adv. generation
-                # Adversarial attack
-                # TODO - 2-a : adversarial attacks def :
-                real_adv, flaw_labels = adversarial_attacks(start, end, encoder)  # flaw_ids or flaw_labels need to figure out
-                #real_adv, flaw_ids_or_flow_labels = adversarial_attacks() #flaw_ids or flaw_labels need to figure out
-                    # real_adv are packed_sequence should be similar to real
-                # TODO - 1 [test] : Need to understand whether we need *multi outputs from D() change to *multi[0]
-                d_adv_bin, d_adv_multi = D(real_adv) # to-do : to use this .....April 13th
-
-                print("d_fake_bin type : ", type(d_fake_bin))
-                print("d_fake_bin shape : ", d_fake_bin.shape)
-                print("d_fake_multi type : ", type(d_fake_multi))
-                print("d_fake_multi shape : ", d_fake_multi.shape)
-                print("d_fake_multi value : ", d_fake_multi[0, :, :])
-
-                print("zeros shape : ", zeros.shape)
-                print("zeros type : ", type(zeros))
-
-                print("d_adv_bin type : ", type(d_adv_bin))
-                print("d_adv_bin shape : ", d_adv_bin.shape)
-                print("d_adv_multi type : ", type(d_adv_multi))
-                print("d_adv_multi shape : ", d_adv_multi.shape)
-                print("d_adv_multi value : ", d_adv_multi[0, :, :])
-
-                print("flaw_labels : ", flaw_labels.shape)
-                print("flaw_labels : ", type(flaw_labels))
-
+                d_adv_bin, d_adv_multi = D(real_adv)
                 d_adv_loss = loss_nll(d_adv_bin, tl, d_adv_multi, flaw_labels, lam=0.5)
-
-                # to-do : 1. Total Discriminator Losses = Real loss + Adv Loss + Fake Loss
-                #d_loss_total =  d_r_loss + d_f_loss + d_adv_loss
-
-                                        # to-do : OR
-
-                # to-do : 2. Total Discriminator Losses = ( Real & Adv ) loss + Fake Loss
-                d_loss_total = d_adv_loss + d_f_loss # TODO : Weighted Average
+                d_loss_total = d_adv_loss + d_f_loss
 
                 d_loss_total.backward()
                 opt_d.step()
@@ -1085,6 +528,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-    #get_sample_data()
-    #train(1000, batch_size=256)
-    #train(2, batch_size=5)

@@ -755,8 +755,8 @@ def convert_examples_to_features_flaw_attacks_disp(examples, max_seq_length, max
             flaw_labels += [label] * len(word_pieces)
             flaw_pieces += word_pieces
 
-            print("idx is {} : tok_id = {} : tok = {} : tok_flaw = {} : label = {} ".format(idx, tok_id, tok, tok_flaw,
-                                                                                            label))
+            # print("idx is {} : tok_id = {} : tok = {} : tok_flaw = {} : label = {} ".format(idx, tok_id, tok, tok_flaw,
+            #                                                                                 label))
 
             #print("label: ", label)
             flaw_tokens_seq.append(tok_flaw)
@@ -1373,17 +1373,9 @@ def multiplyList(myList):
 
 
 def logit_converter(logits, chunks):
-    # logits: (batch, sequence_length); padded
-    # flaw_logits: (batch, sequence_length); padded
-    #     print("type chunks: ", type(chunks))
-    #     print("len of chunks: ", len(chunks))
-    #     print("type of logits: ", type(logits))
-    #     print("len of logits : ", len(logits))
     max_seq_length = len(chunks[0])
     max_batch_size = len(chunks)
     flaw_logits = []
-    #     print("max_seq_length sbplshp :  ", max_seq_length)
-    #     print("max_batch_size sbplshp : ", max_batch_size)
 
     for i in range(max_batch_size):
         flaw_logit = []
@@ -1405,11 +1397,6 @@ def replace_token(token_ids, flaw_labels, correct_tokens, i2w):
     else:
         # flaw_labels = [x for x in flaw_labels if x != 0]
         while len(flaw_labels) > 1 and flaw_labels[-1] == 0: flaw_labels = flaw_labels[:-1]
-
-        # print("flaw_labels:{}".format(flaw_labels))
-        # print("tokens:{}".format(tokens))
-        # print("correct_tokens:{}".format(correct_tokens))
-
         try:
             for i in range(len(flaw_labels)):
                 tokens[flaw_labels[i]] = correct_tokens[i]
