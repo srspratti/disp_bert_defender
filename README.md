@@ -72,7 +72,7 @@ python run/run_bert_generator_eval_random.py
 python run/run_bert_generator_eval_swap.py
 ```
 
-## Pre-Train BERT CLassifier
+## Pre-Train BERT Classifier
 
 We Pre-train BERT CLassifier before evaluation.
 
