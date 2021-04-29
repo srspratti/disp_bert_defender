@@ -72,6 +72,14 @@ python run/run_bert_generator_eval_random.py
 python run/run_bert_generator_eval_swap.py
 ```
 
+## Pre-Train BERT CLassifier
+
+We Pre-train BERT CLassifier before evaluation.
+
+```bash
+python run/run_bert_classifier_train.py
+```
+
 ## Evaluate BERT Classifier in attack free data
 
 We evaluate the performance of BERT on attack free data.
