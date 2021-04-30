@@ -107,7 +107,7 @@ def discriminator_test(num_batches, max_seq_length):
         #                                                   processor=processor, label_list=label_list,
         #                                                   data_dir=data_dir_path, tokenizer=tokenizer)
 
-        sentences_packed = get_packed_sentences(text=text_orig, start=rnd, end=(rnd+8), encoder=encoder)
+        sentences_packed = get_packed_sentences(text=text_orig, start=rnd, end=(rnd+256), encoder=encoder)
         sentence_label, sentence_word_labels = Dis_saved(sentences_packed)
         print("sentence_label type: ", type(sentence_label))
         print("sentence_word_labels type: ", type(sentence_word_labels))
