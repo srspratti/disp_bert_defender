@@ -2,7 +2,9 @@
 
 ## Introduction
 
-This repo cloned from repo https://github.com/joey1993/bert-defenderand and updated for purpose of the college project only.
+This repo cloned from repo https://github.com/joey1993/bert-defender and updated for purpose of the college project only.
+we also referred the following repositories: https://github.com/xuanqing94/RobGAN ; https://github.com/danishpruthi/Adversarial-Misspellings ; https://github.com/zazyzaya/GAN2Vec 
+
 
 ## Requirements
 ```
