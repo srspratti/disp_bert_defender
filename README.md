@@ -113,3 +113,10 @@ python run/run_bert_classifier_eval_swap_recovered.py
 ```bash
 python run/run_GAN2vec_RobGAN_train.py
 ```
+## Discriminator eval if using GAN2vec and Rob-GAN
+
+```bash
+python run/run_GAN2vec_RobGAN_Discriminator.py
+```
+
+
